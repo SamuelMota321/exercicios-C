@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// o ultimo a entrar é o primeiro a sair
+// o ultimo a entrar é o primeiro a sair (LIFO)
 // possui complexidade O(n) para acesso e pesquisa,
 // complexidade O(1) inserção e remoção e
-// o(n) para armazenamento
+// O(n) para armazenamento
 
 typedef struct Pilha
 {
@@ -13,6 +13,38 @@ typedef struct Pilha
 } celula;
 
 celula *top = NULL;
+
+void push(int);
+void pop();
+void imprimir();
+
+int main(void)
+{
+    int n, opcao;
+
+    do
+    {
+        printf("\n\nStack Menu\n 1. Empilhar \n 2.Desempilhar \n 3.Imprimir\n 0. Sair.");
+        printf("\n Escolha uma opcaoo: 0-3: ");
+        scanf("%d", &opcao);
+        switch (opcao)
+        {
+        case 1:
+            printf("\nEntre com o valor que sera empilhado: ");
+            scanf("%d", &n);
+            push(n);
+            break;
+        case 2:
+            pop();
+            break;
+        case 3:
+            imprimir();
+            break;
+        }
+    } while (opcao != 0);
+
+    return 0;
+}
 
 void push(int item)
 {
@@ -42,6 +74,7 @@ void pop()
         free(temp);
     }
 }
+
 void imprimir()
 {
     celula *temp = top;
@@ -61,32 +94,4 @@ void imprimir()
         printf("\n==A pilha esta vazia==");
     }
     free(temp);
-}
-
-int main(void)
-{
-    int n, opcao;
-
-    do
-    {
-        printf("\n\nStack Menu\n 1. Empilhar \n 2.Desempilhar \n 3.Imprimir\n 0. Sair.");
-        printf("\n Escolha uma opcaoo: 0-3: ");
-        scanf("%d", &opcao);
-        switch (opcao)
-        {
-        case 1:
-            printf("\nEntre com o valor que sera empilhado: ");
-            scanf("%d", &n);
-            push(n);
-            break;
-        case 2:
-            pop();
-            break;
-        case 3:
-            imprimir();
-            break;
-        }
-    } while (opcao != 0);
-
-    return 0;
 }
