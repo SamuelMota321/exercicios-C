@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// possui complexidade de tempo O(n) para operações 
+// de busca e pesquisa, O(1) para operações de inserção
+// e exclusão e O(n) para armazenamento
+
 typedef struct Node
 {
     int data;
