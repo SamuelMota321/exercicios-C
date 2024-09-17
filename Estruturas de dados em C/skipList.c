@@ -8,6 +8,7 @@
 // uma complecidade igual a de uma árvore binária, porém
 // de mais fácil implementação
 
+#define MAX_LEVEL 6
 typedef struct Node
 {
     int key;
@@ -16,166 +17,208 @@ typedef struct Node
 
 typedef struct SkipList
 {
-    int maxLevel;
-    float nodeF;      // fração do nó que será usada no sorteio para
-    int currentLevel; // definir quantos níveis um novo nó tem
-    struct Node *start;
+    int level;          
+    struct Node *header; 
 } SkipList;
 
-SkipList *createSkipList(int maxLevel, float nodeF);
-Node *createNode(int key, int currentLevel);
-void freeSkipList(SkipList *skipList);
-int searchSkipList(SkipList *skipList, int key);
-int insertAtSkipList(SkipList *skipList, int key);
-int drawLevel(SkipList *skipList);
-int removeNode(SkipList *skipList, int key);
 
-int main(void)
+Node *createNode(int key, int level);
+SkipList *createSkipList();
+int randomLevel();
+void insert(SkipList *list, int key);
+Node *search(SkipList *list, int key);
+void delete(SkipList *list, int key);
+void printList(SkipList *list);
+
+
+int main()
 {
-    SkipList *teste = NULL;
-    teste = createSkipList(3, 0.5);
-    insertAtSkipList(&teste, 10);
+
+    SkipList *list = createSkipList();
+
+    insert(list, 3);
+    insert(list, 6);
+    insert(list, 7);
+    insert(list, 9);
+    insert(list, 12);
+    insert(list, 19);
+    insert(list, 13);
+    insert(list, 14);
+    insert(list, 15);
+    insert(list, 16);
+    insert(list, 17);
+    insert(list, 18);
+    insert(list, 11);
+    insert(list, 1);
+
+    printList(list);
+
+    int key = 6;
+    Node *node = search(list, key);
+    if (node)
+    {
+        printf("Found key: %d\n", key);
+    }
+    else
+    {
+        printf("Key not found: %d\n", key);
+    }
+
+    delete (list, 3);
+    delete (list, 7);
+    delete (list, 13);
+
+    printList(list);
 
     return 0;
 }
 
-SkipList *createSkipList(int maxLevel, float nodeF)
-{
-    SkipList *newSkipList = (SkipList *)malloc(sizeof(SkipList));
-    if (newSkipList != NULL)
-    {
-        newSkipList->maxLevel = maxLevel;
-        newSkipList->nodeF = nodeF;
-        newSkipList->currentLevel = 0;
-    }
-
-    newSkipList->start = createNode(-1, maxLevel);
-
-    return newSkipList;
-}
-
-Node *createNode(int key, int currentLevel)
+Node *createNode(int key, int level)
 {
     Node *newNode = (Node *)malloc(sizeof(Node));
-    if (newNode != NULL)
+    newNode->key = key;
+    newNode->next = (Node **)malloc(sizeof(Node *) * (level + 1));
+
+    for (int i = 0; i <= level; i++)
     {
-        newNode->key = key;
-        newNode->next = malloc((currentLevel + 1) * sizeof(Node));
-        for (int i = 0; i < (currentLevel + 1); i++)
-            newNode->next[i] == NULL;
+        newNode->next[i] = NULL;
     }
+
     return newNode;
 }
 
-void freeSkipList(SkipList *skipList)
+SkipList *createSkipList()
 {
-    if (skipList == NULL)
-        return;
+    SkipList *list = (SkipList *)malloc(sizeof(SkipList));
+    list->level = 0;
+    list->header = createNode(-1, MAX_LEVEL);
 
-    Node *temp, *current;
-    current = skipList->start->next[0];
-    while (current != NULL)
-    {
-        temp = current;
-        current = current->next[0];
-        free(temp->next);
-        free(temp);
-    }
-    free(skipList->start);
-    free(skipList);
+    return list;
 }
 
-int searchSkipList(SkipList *skipList, int key)
+int randomLevel()
 {
-    if (skipList == NULL)
-        return;
-
-    Node *current = skipList->start;
-    for (int i = skipList->currentLevel; i >= 0; i--)
-        while (current->next[i] != NULL && current->next[i]->key < key)
-            current = current->next[i];
-
-    current = current->next[0];
-
-    if (current != NULL && current->key == key)
-        return 1;
-    else
-        return 0;
-}
-
-int insertAtSkipList(SkipList *skipList, int key)
-{
-    if (skipList == NULL)
-        return 0;
-
-    Node *current = skipList->start,
-         **temp = malloc((skipList->maxLevel + 1) * sizeof(Node));
-
-    for (int i = 0; i <= skipList->maxLevel; i++)
-        temp[i] = NULL;
-
-    for (int i = skipList->currentLevel; i >= 0; i--)
-    {
-        while (current->next[i] != NULL && current->next[i]->key < key)
-            current = current->next[i];
-
-        temp[i] = current;
-    }
-    current = current->next[0];
-    if (current == NULL || current->key != key)
-    {
-        int newLevel = drawLevel(skipList);
-        Node *newNode = createNode(key, newLevel);
-        if (newNode == NULL)
-        {
-            free(temp);
-            return 0;
-        }
-
-        if (newLevel > skipList->currentLevel)
-        {
-            for (int i = 0; i <= newLevel; i++)
-                temp[i] = skipList->start;
-            skipList->currentLevel = newLevel;
-        }
-
-        for (int i = 0; i <= newLevel; i++)
-        {
-            newNode->next[i] = temp[i]->next[i];
-            temp[i]->next[i] = newNode;
-        }
-
-        free(temp);
-        return 1;
-    }
-}
-
-int drawLevel(SkipList *skipList)
-{
-    float random = (float)rand() / RAND_MAX;
     int level = 0;
-    while (random < skipList->nodeF && level < skipList->maxLevel)
+    while (rand() % 2 && level < MAX_LEVEL)
     {
         level++;
-        random = (float)rand() / RAND_MAX;
     }
     return level;
 }
 
-int removeNode(SkipList *skipList, int key)
+void insert(SkipList *list, int key)
 {
-    if (skipList == NULL)
-        return 0;
+    Node *current = list->header;
+    Node *update[MAX_LEVEL + 1];
 
-    Node *current = skipList->start,
-         **temp = malloc((skipList->maxLevel) * sizeof(Node));
-    for (int i = 0; i < skipList->maxLevel; i++)
-        temp[i] = NULL;
-
-    for (int i = skipList->currentLevel; i >= 0; i--)
+    for (int i = list->level; i >= 0; i--)
     {
         while (current->next[i] != NULL && current->next[i]->key < key)
+        {
             current = current->next[i];
-        temp[i] = current;
+        }
+        update[i] = current;
+    }
+
+    current = current->next[0];
+
+    if (current == NULL || current->key != key)
+    {
+        int newLevel = randomLevel();
+
+        if (newLevel > list->level)
+        {
+            for (int i = list->level + 1; i <= newLevel; i++)
+            {
+                update[i] = list->header;
+            }
+            list->level = newLevel;
+        }
+
+        Node *newNode = createNode(key, newLevel);
+
+        for (int i = 0; i <= newLevel; i++)
+        {
+            newNode->next[i] = update[i]->next[i];
+            update[i]->next[i] = newNode;
+        }
+
+        printf("Inserted key: %d\n", key);
+    }
+}
+
+Node *search(SkipList *list, int key)
+{
+    Node *current = list->header;
+
+    for (int i = list->level; i >= 0; i--)
+    {
+        while (current->next[i] != NULL && current->next[i]->key < key)
+        {
+            current = current->next[i];
+        }
+    }
+
+    current = current->next[0];
+
+    if (current != NULL && current->key == key)
+    {
+        return current;
+    }
+
+    return NULL;
+}
+
+void delete(SkipList *list, int key)
+{
+    Node *current = list->header;
+    Node *update[MAX_LEVEL + 1];
+
+    for (int i = list->level; i >= 0; i--)
+    {
+        while (current->next[i] != NULL && current->next[i]->key < key)
+        {
+            current = current->next[i];
+        }
+        update[i] = current;
+    }
+
+    current = current->next[0];
+
+    if (current != NULL && current->key == key)
+    {
+        for (int i = 0; i <= list->level; i++)
+        {
+            if (update[i]->next[i] != current)
+            {
+                break;
+            }
+            update[i]->next[i] = current->next[i];
+        }
+
+        free(current);
+
+        while (list->level > 0 && list->header->next[list->level] == NULL)
+        {
+            list->level--;
+        }
+
+        printf("Deleted key: %d\n", key);
+    }
+}
+
+void printList(SkipList *list)
+{
+    printf("Skip List:\n");
+    for (int i =list->level; i >= 0 ; i--)
+    {
+        Node *current = list->header->next[i];
+        printf("Level %d: ", i);
+        while (current != NULL)
+        {
+            printf("%d ", current->key);
+            current = current->next[i];
+        }
+        printf("\n");
     }
 }
