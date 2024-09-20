@@ -60,3 +60,5 @@ void printTable(int table[])
         printf("{index: %d, key: %d}", i, table[i]);
     }
 }
+
+//testando 
