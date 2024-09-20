@@ -17,8 +17,10 @@
 // mais próximo, podendo ser 29 ou 31
 #define SIZE 31
 
-void hashFuction(int table, int key);
-void insert(int data);
+int hashFunction(int key);
+void insert(int table[], int data);
+int search(int table[], int key);
+void printTable(int table[]);
 
 int main(void)
 {
@@ -27,14 +29,34 @@ int main(void)
     return 0;
 }
 
-void hashFuction(int table[], int key)
+int hashFunction(int key)
 {
     return key % SIZE;
 }
 
-void insert(int data)
+void insert(int table[], int data)
 {
-    int id = hashFuction(data);
+    int id = hashFunction(data);
     while (table[id] != 0)
-        id = hashFucton(id + 1);
+        id = hashFunction(id + 1);
+    table[id] = data;
+}
+
+int search(int table[], int key)
+{
+    int id = hashFunction(key);
+    while (table[id] != 0)
+        if (table[id] == key)
+            return table[id];
+        else
+            id = hashFunction(id + 1);
+}
+
+void printTable(int table[])
+{
+    int i;
+    for(i = 0; i < SIZE; i++ )
+    {
+        printf("{index: %d, key: %d}", i, table[i]);
+    }
 }
