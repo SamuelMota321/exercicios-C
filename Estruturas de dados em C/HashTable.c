@@ -61,4 +61,3 @@ void printTable(int table[])
     }
 }
 
-//testando 
