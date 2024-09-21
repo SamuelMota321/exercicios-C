@@ -36,7 +36,7 @@ Tipo              | Token Definida|
 ------------------|---------------|
 Identificadores   |       ID      |  
 Números           |    NUM_INT    | 
-                       NUM_FLT    |  
+                  |    NUM_FLT    |  
 Palavra Reservada |    PAL_RES    | 
 Operadores        | OP_EQ, OP_GE, OP_MUL, OP_NE, OP_LE, OP_DIV, OP_GT, OP_AD, OP_ASS, OP_LT, OP_MIN |
 Símbolos          |  SMB_OBC, SMB_COM, SMB_CBC, SMB_SEM, SMB_OPA, SMB_CPA
