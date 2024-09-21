@@ -17,9 +17,9 @@ typedef struct {
 } Token;
 ```
 **Campos:** 
-* `type:` Armazena o tipo do token como um valor do enum TokenType. Isso define se o token é um operador, símbolo, número, palavra-chave ou identificador.
+* `type`: Armazena o tipo do token como um valor do enum TokenType. Isso define se o token é um operador, símbolo, número, palavra-chave ou identificador.
     
-* `value:` Armazena o valor textual do token, como o nome de uma variável, um operador ou um número.
+* `value`: Armazena o valor textual do token, como o nome de uma variável, um operador ou um número.
 
 ### Enum `TokenType`
 
@@ -32,23 +32,90 @@ typedef enum {
 ```
 
 **Tipos de Tokens**  
-Tipo              | Token Definida|
-------------------|---------------|
-Identificadores   |       ID      |  
-Números           |    NUM_INT    | 
-                  |    NUM_FLT    |  
-Palavra Reservada |    PAL_RES    | 
-Operadores        | OP_EQ, OP_GE, OP_MUL, OP_NE, OP_LE, OP_DIV, OP_GT, OP_AD, OP_ASS, OP_LT, OP_MIN |
-Símbolos          |  SMB_OBC, SMB_COM, SMB_CBC, SMB_SEM, SMB_OPA, SMB_CPA
+| Tipo                 | Token Definida                                                                  |
+| -------------------- | ------------------------------------------------------------------------------- |
+| Identificadores      | ID                                                                              |
+| Números              | NUM_INT,NUM_FLT                                                                 |
+| Palavra Reservada    | PAL_RES                                                                         |
+| Operadores           | OP_EQ, OP_GE, OP_MUL, OP_NE, OP_LE, OP_DIV, OP_GT, OP_AD, OP_ASS, OP_LT, OP_MIN |
+| Símbolos             | SMB_OBC, SMB_COM, SMB_CBC, SMB_SEM, SMB_OPA, SMB_CPA                            |
+| Tokens desconhecidas | UNKNOWN                                                                         |
+| Fim do Arquivo       | END_OF_FILE                                                                     |
 
+**Mais detalhes**
 
-Números: NUM_INT, NUM_FLT
+**Operadores:**
+* OP_EQ: =
+* OP_GE: >=
+* OP_MUL: *
+* OP_NE: <>
+* OP_LE: <=
+* OP_DIV: /
+* OP_GT: >
+* OP_AD: +
+* OP_ASS: =
+* OP_LT: <
+* OP_MIN: -
+  
+**Símbolos:**
+* SMB_OBC: {
+* SMB_COM: ,
+* SMB_CBC: }
+* SMB_SEM: ;
+* SMB_OPA: (
+* SMB_CPA: )
 
-* Palavras-chave: PAL_RES
+### Função `is_keyword`
 
-* Operadores: OP_EQ, OP_GE, OP_MUL, OP_NE, OP_LE, OP_DIV, OP_GT, OP_AD, OP_ASS, OP_LT, OP_MIN
+A função `is_keyword` verifica se uma string é uma palavra-chave definida na linguagem MicroPascal.
 
-Símbolos: SMB_OBC, SMB_COM, SMB_CBC, SMB_SEM, SMB_OPA, SMB_CPA
+```c
+int is_keyword(char *word) {
+    for (int i = 0; i < num_keywords; i++) {
+        if (strcmp(word, keywords[i]) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+```
 
-Token desconhecido: UNKNOWN
-Fim de arquivo: END_OF_FILE
+**Parâmetro:**
+* `word`: String que será verificada.
+  
+**Retorno:**
+* Retorna `1` se a string for uma palavra-chave; caso contrário, retorna `0`.
+
+### Função `next_token`
+
+Essa função é responsável por gerar o próximo token lido do arquivo.
+
+```c
+Token next_token(FILE *file) {
+    // Implementação detalhada no código
+}
+```
+**Parâmetro:**
+* `file`: Ponteiro para o arquivo de código-fonte (programa MicroPascal) que está sendo lido.
+  
+**Retorno:**
+* Retorna um Token contendo o tipo de token e o valor associado.
+
+**Funcionamento:**
+1. Ignora espaços em branco.
+2. Detecta identificadores e palavras-chave.
+3. Detecta números inteiros e reais.
+4. Identifica operadores e símbolos.
+5. Retorna o token gerado ou END_OF_FILE ao final.
+
+### Função `print_token`
+
+A função `print_token` imprime um token no formato adequado, identificando o tipo e valor do token.
+```c
+void print_token(Token token) {
+    // Implementação detalhada no código
+}
+```
+
+**Parâmetro:**
+* `token`: O token a ser impresso.
