@@ -273,7 +273,7 @@ Token *getToken(FILE *file, Token *previousToken)
         {
             if (previousToken != NULL && previousToken->type == ERROR && isdigit(*previousToken->value))
             {
-                printf("A palavra reservada %s%s e invalida, pois começa com um numero.\n", token->previous->value, token->value);
+                printf("A palavra reservada %s%s e invalida, pois comeca com um numero.\n", token->previous->value, token->value);
                 free(previousToken);
                 previousToken = NULL;
                 token->type = ERROR;
@@ -285,7 +285,7 @@ Token *getToken(FILE *file, Token *previousToken)
         {
             if (previousToken != NULL && previousToken->type == ERROR && isdigit(*previousToken->value))
             {
-                printf("O identificador %s%s e invalido, pois começa com um numero.\n", token->previous->value, token->value);
+                printf("O identificador %s%s e invalido, pois comeca com um numero.\n", token->previous->value, token->value);
                 free(previousToken);
                 previousToken = NULL;
                 token->type = ERROR;
