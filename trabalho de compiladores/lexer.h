@@ -47,17 +47,17 @@ typedef enum
     SMB_CBR, // } (chave de fechamento)
 
     // Outros tokens
-    EMPTY_STRING, // String vazia ''
-    STRING,       // String literals compostos por 'texto 232 sd'
-    COMMENT,
-    EMPTY_COMMENT,
-    IDENTIFIER, // Identificadores
-    NUM_INT,    // Número inteiro
-    NUM_FLT,    // Número com pronto flutuante
-    KEYWORD,    // Palavras reservadas
-    UNKNOWN,    // Token desconhecida
-    ERROR,      // Token inválida
-    END_OF_FILE // final do arquivo
+    EMPTY_STRING,   // String vazia ''
+    STRING,         // String literals compostos por 'texto 232 sd'
+    COMMENT,        // identificação de comentário
+    EMPTY_COMMENT,  // comentário vazio
+    IDENTIFIER,     // Identificadores
+    NUM_INT,        // Número inteiro
+    NUM_FLT,        // Número com pronto flutuante
+    KEYWORD,        // Palavras reservadas
+    UNKNOWN,        // Token desconhecida
+    ERROR,          // Token inválida
+    END_OF_FILE     // final do arquivo
 } TokenType;
 
 typedef struct Token
