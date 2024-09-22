@@ -1,32 +1,64 @@
-program TesteComentarios;
+program TesteCompiladorLexico;
 
-(* Este é um comentário de bloco *)
+var
+    a, b, resultado: integer;
+    x, y: real;
+    condicao: boolean;
+
+function SomaInteiros(i, j: integer): integer;
 begin
-    { Este é um comentário com chaves }
-    writeln('Teste de comentários em microPascal');
-    
-    writeln('Este código deve ser executado');
+    SomaInteiros := i + j;
+end;
 
-    (* Comentário de bloco com
-       múltiplas linhas *)
-    writeln('Os comentários não devem interferir no código');
+procedure MostraResultado(r: integer);
+begin
+    writeln('O resultado inteiro e: ', r);
+end;
 
-    { Outro exemplo de comentário com
-      várias linhas dentro de chaves }
+procedure MostraResultadoReal(r: real);
+begin
+    writeln('O resultado real e: ', r:0:2);
+end;
 
-    writeln('Fim do teste');
+begin
+    a := 10;
+    b := 20;
+    x := 15.5;
+    y := 25.75;
+    condicao := true;
 
-    (* Comentário vazio: {} *)
+    resultado := a + b;
+    MostraResultado(resultado);  
 
-    { Comentário vazio: { } }
+    resultado := a * (b - 5);
+    MostraResultado(resultado);  
 
-    (* Comentário de bloco que deve ser ignorado *)
-    (* 
-       Este é um bloco que deve ser 
-       completamente ignorado pelo analisador 
-    *)
+    y := x / 2.0;
+    MostraResultadoReal(y);  
 
-    { Comentário de linha que não deve afetar 
-      a execução do programa }
+    if a > b then
+        writeln('A e maior que B')
+    else
+        writeln('A e menor ou igual a B');
 
+    while a < 15 do
+    begin
+        a := a + 1;
+        writeln('Valor de A: ', a);
+    end;
+
+    resultado := SomaInteiros(a, b);
+    MostraResultado(resultado);  
+
+    condicao := (a = b);
+    if condicao then
+        writeln('A e igual a B')
+    else
+        writeln('A e diferente de B');
+
+    if (a mod 2 = 0) then
+        writeln('A e par')
+    else
+        writeln('A e impar');
+        
 end.
