@@ -8,6 +8,7 @@ int main()
     int option;
     FILE *file = NULL;
     Token *token = NULL;
+    Token *head = NULL;
 
     do
     {

@@ -19,7 +19,8 @@ procedure MostraResultadoReal(r: real);
 begin
     writeln('O resultado real e: ', r:0:2);
 end;
-
+ { Eu sou um comentario }
+ (*eu também *)
 begin
     a := 10;
     b := 20;

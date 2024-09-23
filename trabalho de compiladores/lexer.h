@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 char *keywords[] = {"and", "array", "begin", "case", "const", "div", "do", "downto", "else", "end", "for",
                     "function", "if", "in", "integer", "label", "mod", "not", "of", "or", "procedure", "program", "record", "repeat",
@@ -47,17 +48,17 @@ typedef enum
     SMB_CBR, // } (chave de fechamento)
 
     // Outros tokens
-    EMPTY_STRING,   // String vazia ''
-    STRING,         // String literals compostos por 'texto 232 sd'
-    COMMENT,        // identificação de comentário
-    EMPTY_COMMENT,  // comentário vazio
-    IDENTIFIER,     // Identificadores
-    NUM_INT,        // Número inteiro
-    NUM_FLT,        // Número com pronto flutuante
-    KEYWORD,        // Palavras reservadas
-    UNKNOWN,        // Token desconhecida
-    ERROR,          // Token inválida
-    END_OF_FILE     // final do arquivo
+    EMPTY_STRING,  // String vazia ''
+    STRING,        // String literals compostos por 'texto 232 sd'
+    COMMENT,       // identificação de comentário
+    EMPTY_COMMENT, // comentário vazio
+    IDENTIFIER,    // Identificadores
+    NUM_INT,       // Número inteiro
+    NUM_FLT,       // Número com pronto flutuante
+    KEYWORD,       // Palavras reservadas
+    UNKNOWN,       // Token desconhecida
+    ERROR,         // Token inválida
+    END_OF_FILE    // final do arquivo
 } TokenType;
 
 typedef struct Token
@@ -65,7 +66,11 @@ typedef struct Token
     TokenType type;
     char *value;
     struct Token *previous;
+    struct Token *next;
 } Token;
+
+int initial_size = 100;
+int resize_factor = 2;
 
 int isKeyword(char *value)
 {
@@ -88,16 +93,214 @@ int isValidIdentifier(char *value)
     return 1;
 }
 
+void reallocMemory(int initial_size, Token *token, int resize_factor)
+{
+    initial_size *= resize_factor;
+    token->value = (char *)realloc(token->value, initial_size * sizeof(char));
+    if (!token->value)
+    {
+        printf("Erro: falha ao realocar memoria.\n");
+        exit(1);
+    }
+}
+
+Token *handleErrors(const char *errorMessage, ...)
+{
+    va_list args;
+    va_start(args, errorMessage);         // Inicializa a lista de argumentos
+    vprintf(errorMessage, args);          // Imprime a mensagem de erro formatada com os argumentos variáveis
+    va_end(args);                         // Finaliza o uso da lista de argumentos
+    Token *token = va_arg(args, Token *); // Recupera o token a partir dos argumentos (supondo que o último argumento seja o token)
+    token->type = ERROR;                  // Define o tipo do token como erro
+    return token;
+}
+
+Token *isString(FILE *file, char ch, Token *token, int index)
+{
+    token->value[index++] = '\''; // adicionando abertura da string.
+
+    ch = fgetc(file);
+    while (ch != '\'' && ch != EOF)
+    {
+        token->value[index++] = ch;
+
+        if (index >= initial_size - 1)
+            reallocMemory(initial_size, token, resize_factor);
+
+        ch = fgetc(file);
+    }
+    token->value[index++] = '\''; // adicionando fechamento da string.
+    token->value[index] = '\0';
+
+    if (index > 0 && strcmp(token->value, "''") != 0)
+    {
+        token->type = STRING;
+        return token;
+    }
+
+    if (index == 0)
+    {
+        strcpy(token->value, "''");
+        token->type = EMPTY_STRING;
+        return token;
+    }
+}
+
+Token *isAComment(FILE *file, char ch, Token *token, int index)
+{
+    if (ch == '(')
+    {
+        token->value[index] = ch;
+        token->type = SMB_OPA;
+        ch = fgetc(file);
+        if (ch == '*')
+        {
+            token->value[index++] = '('; // adcionando abertura do comentário
+            while (1 || ch != EOF)
+            {
+                token->value[index++] = ch;
+
+                if (index >= initial_size - 1)
+                    reallocMemory(initial_size, token, resize_factor);
+
+                ch = fgetc(file);
+                if (ch == '*')
+                {
+                    ch = fgetc(file);
+                    if (ch == ')')
+                    {
+                        break; // Fim do comentário de bloco
+                    }
+                }
+            }
+            token->value[index++] = '*'; // Adiciona o fechamento do comentário
+            token->value[index++] = ')'; // Adiciona o fechamento do comentário
+            token->value[index] = '\0';
+
+            if (index > 2 && strcmp(token->value, "(**)") != 0)
+            {
+                token->type = COMMENT;
+                return token;
+            }
+            else
+            {
+                strcpy(token->value, "(**)");
+                token->type = EMPTY_COMMENT;
+                return token;
+            }
+        }
+        ungetc(ch, file);
+        return token;
+    }
+    else if (ch == '{')
+    {
+        // Início do comentário de bloco { ... }
+        do
+        {
+            token->value[index++] = ch;
+
+            if (index >= initial_size - 1)
+                reallocMemory(initial_size, token, resize_factor);
+
+            ch = fgetc(file);
+        } while (ch != '}' && ch != EOF);
+
+        token->value[index++] = ch; // Adiciona o fechamento do comentário
+        token->value[index] = '\0';
+
+        if (index > 2 && strcmp(token->value, "{}") != 0)
+        {
+            token->type = COMMENT;
+            return token;
+        }
+        else
+        {
+            strcpy(token->value, "{}");
+            token->type = EMPTY_COMMENT;
+            return token;
+        }
+    }
+}
+
+Token *isAKeywordOrIdentifier(FILE *file, char ch, Token *token, int index, Token *previousToken)
+{
+    do
+    {
+        token->value[index++] = ch;
+
+        if (index >= initial_size - 1)
+            reallocMemory(initial_size, token, resize_factor);
+
+        ch = fgetc(file);
+    } while (isalnum(ch) || ch == '_');
+
+    token->value[index] = '\0';
+    ungetc(ch, file);
+
+    if (isKeyword(token->value))
+    {
+        if (previousToken != NULL && previousToken->type == ERROR && isdigit(*previousToken->value))
+            token = handleErrors("A palavra reservada %s%s e invalida, pois comeca com um numero.\n", token->previous->value, token->value);
+        else
+            token->type = KEYWORD;
+    }
+    else if (isValidIdentifier(token->value))
+    {
+        if (previousToken != NULL && previousToken->type == ERROR && isdigit(*previousToken->value))
+            token = handleErrors("A palavra reservada %s%s e invalida, pois comeca com um numero.\n", token->previous->value, token->value);
+        else
+            token->type = IDENTIFIER;
+    }
+    return token;
+}
+
+Token *isANumber(FILE *file, char ch, Token *token, int index)
+{
+    int is_float = 0;
+    do
+    {
+        token->value[index++] = ch;
+        ch = fgetc(file);
+    } while (isdigit(ch));
+
+    if (ch == '.')
+    {
+        is_float = 1;
+        token->value[index++] = ch;
+        ch = fgetc(file);
+        while (isdigit(ch))
+        {
+            token->value[index++] = ch;
+            ch = fgetc(file);
+        }
+    }
+
+    token->value[index] = '\0';
+    ungetc(ch, file);
+
+    ch = fgetc(file);
+    if (isalpha(ch))
+    {
+        ungetc(ch, file);
+        token->type = ERROR;
+        return token;
+    }
+    else
+    {
+        ungetc(ch, file);
+        token->type = is_float ? NUM_FLT : NUM_INT;
+        return token;
+    }
+}
+
 Token *getToken(FILE *file, Token *previousToken)
 {
-    int initial_size = 100;
-    int resize_factor = 2;
+
     Token *token = (Token *)malloc(sizeof(Token));
     token->value = (char *)malloc(initial_size * sizeof(char));
     token->previous = previousToken;
     char ch;
     int index = 0;
-    int is_float = 0;
 
     do
     {
@@ -110,232 +313,33 @@ Token *getToken(FILE *file, Token *previousToken)
         }
     } while (isspace(ch));
 
-
     // verifica se é uma string
     if (ch == '\'')
     {
-        token->value[index++] = '\''; // adicionando abertura da string.
-
-        ch = fgetc(file);
-        while (ch != '\'' && ch != EOF)
-        {
-            token->value[index++] = ch;
-
-            if (index >= initial_size - 1)
-            {
-                initial_size *= resize_factor;
-                token->value = (char *)realloc(token->value, initial_size * sizeof(char));
-                if (!token->value)
-                {
-                    printf("Erro: falha ao realocar memoria.\n");
-                    exit(1);
-                }
-            }
-
-            ch = fgetc(file);
-        }
-        token->value[index++] = '\''; // adicionando fechamento da string.
-        token->value[index] = '\0';
-
-        if (index > 0 && strcmp(token->value, "''") != 0)
-        {
-            token->type = STRING;
-            return token;
-        }
-        if (index == 0)
-        {
-            strcpy(token->value, "''");
-            token->type = EMPTY_STRING;
-            return token;
-        }
+        token = isString(file, ch, token, index);
+        return token;
     }
 
-
     // Código para identificar comentário
-    // if (ch == '{' || ch == '(')
-    // {
-    //     if (ch == '(')
-    //     {
-    //         token->value[index] = ch;
-    //         token->type = SMB_OPA;
-    //         ch = fgetc(file);
-    //         if (ch == '*')
-    //         {
-    //             token->value[index++] = '('; // adcionando abertura do comentário
-    //             while (1)
-    //             {
-    //                 token->value[index++] = ch;
-
-    //                 if (index >= initial_size - 1)
-    //                 {
-    //                     initial_size *= resize_factor;
-    //                     token->value = (char *)realloc(token->value, initial_size * sizeof(char));
-    //                     if (!token->value)
-    //                     {
-    //                         printf("Erro: falha ao realocar memoria.\n");
-    //                         exit(1);
-    //                     }
-    //                 }
-
-    //                 ch = fgetc(file);
-    //                 if (ch == '*')
-    //                 {
-    //                     ch = fgetc(file);
-    //                     if (ch == ')')
-    //                     {
-    //                         break; // Fim do comentário de bloco
-    //                     }
-    //                 }
-    //             }
-    //             token->value[index++] = '*'; // Adiciona o fechamento do comentário
-    //             token->value[index++] = ')'; // Adiciona o fechamento do comentário
-    //             token->value[index] = '\0';
-
-    //             if (index > 2 && strcmp(token->value, "(**)") != 0)
-    //             {
-    //                 token->type = COMMENT;
-    //                 return token;
-    //             }
-    //             else
-    //             {
-    //                 strcpy(token->value, "(**)");
-    //                 token->type = EMPTY_COMMENT;
-    //                 return token;
-    //             }
-    //         }
-    //         ungetc(ch, file);
-    //         return token;
-    //     }
-    //     else if (ch == '{')
-    //     {
-    //         // Início do comentário de bloco { ... }
-    //         do
-    //         {
-    //             token->value[index++] = ch;
-
-    //             if (index >= initial_size - 1)
-    //             {
-    //                 initial_size *= resize_factor;
-    //                 token->value = (char *)realloc(token->value, initial_size * sizeof(char));
-    //                 if (!token->value)
-    //                 {
-    //                     printf("Erro: falha ao realocar memoria.\n");
-    //                     exit(1);
-    //                 }
-    //             }
-
-    //             ch = fgetc(file);
-    //         } while (ch != '}' && ch != EOF);
-
-    //         token->value[index++] = ch; // Adiciona o fechamento do comentário
-    //         token->value[index] = '\0';
-
-    //         if (index > 2 && strcmp(token->value, "{}") != 0)
-    //         {
-    //             token->type = COMMENT;
-    //             return token;
-    //         }
-    //         else
-    //         {
-    //             strcpy(token->value, "{}");
-    //             token->type = EMPTY_COMMENT;
-    //             return token;
-    //         }
-    //     }
-    // }
-
+    if (ch == '{' || ch == '(')
+    {
+        token = isAComment(file, ch, token, index);
+        return token;
+    }
 
     // verica se é uma palavra reservada ou um identificador
     if (isalpha(ch) || ch == '_')
     {
-        do
-        {
-            token->value[index++] = ch;
-
-            if (index >= initial_size - 1)
-            {
-                initial_size *= resize_factor;
-                token->value = (char *)realloc(token->value, initial_size * sizeof(char));
-                if (!token->value)
-                {
-                    printf("Erro: falha ao realocar memoria.\n");
-                    exit(1);
-                }
-            }
-
-            ch = fgetc(file);
-        } while (isalnum(ch) || ch == '_');
-
-        token->value[index] = '\0';
-        ungetc(ch, file);
-
-        if (isKeyword(token->value))
-        {
-            if (previousToken != NULL && previousToken->type == ERROR && isdigit(*previousToken->value))
-            {
-                printf("A palavra reservada %s%s e invalida, pois comeca com um numero.\n", token->previous->value, token->value);
-                free(previousToken);
-                previousToken = NULL;
-                token->type = ERROR;
-            }
-            else
-                token->type = KEYWORD;
-        }
-        else if (isValidIdentifier(token->value))
-        {
-            if (previousToken != NULL && previousToken->type == ERROR && isdigit(*previousToken->value))
-            {
-                printf("O identificador %s%s e invalido, pois comeca com um numero.\n", token->previous->value, token->value);
-                free(previousToken);
-                previousToken = NULL;
-                token->type = ERROR;
-            }
-            else
-                token->type = IDENTIFIER;
-        }
+        token = isAKeywordOrIdentifier(file, ch, token, index, previousToken);
         return token;
     }
-
 
     // verifica o número, caso tenha um caractere letra após retorna um erro que é tratado no código acima
     if (isdigit(ch))
     {
-        do
-        {
-            token->value[index++] = ch;
-            ch = fgetc(file);
-        } while (isdigit(ch));
-
-        if (ch == '.')
-        {
-            is_float = 1;
-            token->value[index++] = ch;
-            ch = fgetc(file);
-            while (isdigit(ch))
-            {
-                token->value[index++] = ch;
-                ch = fgetc(file);
-            }
-        }
-
-        token->value[index] = '\0';
-        ungetc(ch, file);
-
-        ch = fgetc(file);
-        if (isalpha(ch))
-        {
-            ungetc(ch, file);
-            token->type = ERROR;
-            return token;
-        }
-        else
-        {
-            ungetc(ch, file);
-            token->type = is_float ? NUM_FLT : NUM_INT;
-            return token;
-        }
+        token = isANumber(file, ch, token, index);
+        return token;
     }
-
 
     // determina os tokens para os caracteres especiais da linguagem
     switch (ch) // Não será feito tratamento da variavel ERROR dentro desse switch
@@ -475,11 +479,7 @@ Token *getToken(FILE *file, Token *previousToken)
         token->type = SMB_PTO;
         break;
 
-    case '(':
-        strcpy(token->value, "(");
-        token->type = SMB_OPA;
-        break;
-
+        // o tratamento da leitura da abertura do parênteses está sendo feita no if que checa comentários
     case ')':
         strcpy(token->value, ")");
         token->type = SMB_CPA;
@@ -616,16 +616,16 @@ void printToken(Token *token)
         printf("EMPTY_STRING: %s\n", token->value);
         break;
 
-    // case COMMENT: 
-    //     printf("COMMENT: %s\n", token->value);
-    //     break;
+    case COMMENT:
+        printf("COMMENT: %s\n", token->value);
+        break;
 
-    // case EMPTY_COMMENT:
-    //     printf("EMPTY_COMMENT: %s\n", token->value);
-    //     break;
+    case EMPTY_COMMENT:
+        printf("EMPTY_COMMENT: %s\n", token->value);
+        break;
 
     case UNKNOWN:
-        printf("UNKNOWN: %s\n", token->value);
+        printf("UNKNOWN: %s caractere desconhecido!\n", token->value);
         break;
 
     case END_OF_FILE:
@@ -633,7 +633,7 @@ void printToken(Token *token)
         break;
 
     default: // descomente aqui caso queria que imprima todos os erros
-             //   printf("\n\n\t ERROR %s\n\n", token->value);
+             //    printf("\n\n\t ERROR %s\n\n", token->value);
         break;
     }
 }
