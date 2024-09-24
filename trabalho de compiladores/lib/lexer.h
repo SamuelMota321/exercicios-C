@@ -195,7 +195,7 @@ Token *isAKeywordOrIdentifier(FILE *file, char ch, Token *token, int index, Toke
     {
         if (previousToken != NULL && previousToken->type == ERROR && isdigit(*previousToken->value))
         {
-            token = handleErrors(token, "A palavra reservada %s%s e invalida, pois comeca com um numero.\n", token->previous->value, token->value);
+            token = handleErrors(token, "A palavra reservada %s%s e invalida.\n", token->previous->value, token->value);
         }
         else
             token->type = KEYWORD;
@@ -204,7 +204,7 @@ Token *isAKeywordOrIdentifier(FILE *file, char ch, Token *token, int index, Toke
     {
         if (previousToken != NULL && previousToken->type == ERROR && isdigit(*previousToken->value))
         {
-            token = handleErrors(token, "A palavra reservada %s%s e invalida, pois comeca com um numero.\n", token->previous->value, token->value);
+            token = handleErrors(token, "O identificador %s%s e invalido.\n", token->previous->value, token->value);
         }
         else
             token->type = IDENTIFIER;
