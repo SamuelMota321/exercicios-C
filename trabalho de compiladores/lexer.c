@@ -92,7 +92,6 @@ int main()
             } while (token->type != END_OF_FILE);
 
             printf("\n\nimprimindo a partir da lista de tokens salva por get token\n\n");
-            printf("\n\n token inicial: %s \n\n", tokenTypeToString(initialToken->type));
             printList(initialToken);
         }
 

@@ -4,177 +4,252 @@
 
 Este relatório documenta a implementação de um compilador de análise léxica desenvolvido em linguagem C, sem o uso de geradores de analisadores léxicos, que converte código MicroPascal em tokens. A análise léxica identifica operadores, símbolos, números, palavras-chave e identificadores, seguindo um esquema de tokens predefinido.
 
+
+# tokens.h
 ## Estruturas e Funções Utilizadas
+
+### Enumeração `TokenType`
+
+A enumeração `TokenType` define os diferentes tipos de tokens que o analisador pode reconhecer. Os tipos de tokens incluem operadores, delimitadores, identificadores, números, strings, palavras-chave e outros tipos de tokens.
+
+#### Tipos de Tokens
+
+- **Operadores Aritméticos**:
+  - `OP_AD`: Adição (`+`)
+  - `OP_MIN`: Subtração (`-`)
+  - `OP_MUL`: Multiplicação (`*`)
+  - `OP_DIV`: Divisão (`/`)
+
+- **Operadores de Comparação**:
+  - `OP_EQ`: Igualdade (`=`)
+  - `OP_NE`: Diferença (`<>`)
+  - `OP_GT`: Maior que (`>`)
+  - `OP_LT`: Menor que (`<`)
+  - `OP_GE`: Maior ou igual (`>=`)
+  - `OP_LE`: Menor ou igual (`<=`)
+
+- **Operador de Atribuição**:
+  - `OP_ASS`: Atribuição (`:=`)
+
+- **Delimitadores**:
+  - `SMB_SEM`: Ponto e vírgula (`;`)
+  - `SMB_COL`: Dois pontos (`:`)
+  - `SMB_COM`: Vírgula (`,`)
+  - `SMB_PTO`: Ponto (`.`)
+
+- **Parênteses e Colchetes**:
+  - `SMB_OPA`: Parênteses de abertura (`(`)
+  - `SMB_CPA`: Parênteses de fechamento (`)`)
+  - `SMB_OBC`: Colchete de abertura (`[`)
+  - `SMB_CBC`: Colchete de fechamento (`]`)
+  
+- **Chaves**:
+  - `SMB_OBR`: Chave de abertura (`{`)
+  - `SMB_CBR`: Chave de fechamento (`}`)
+
+- **Outros Tokens**:
+  - `EMPTY_STRING`: String vazia (`''`)
+  - `STRING`: Literais de string
+  - `COMMENT`: Comentários
+  - `EMPTY_COMMENT`: Comentário vazio
+  - `IDENTIFIER`: Identificadores
+  - `NUM_INT`: Números inteiros
+  - `NUM_FLT`: Números com ponto flutuante
+  - `KEYWORD`: Palavras reservadas
+  - `UNKNOWN`: Token desconhecido
+  - `ERROR`: Token inválido
+  - `END_OF_FILE`: Final do arquivo
 
 ### Estrutura `Token`
 
-A estrutura `Token` é usada para armazenar o tipo de token e seu valor associado.
+A estrutura `Token` representa um token individual, contendo as seguintes informações:
+
+- **TokenType `type`**: O tipo do token.
+- **char *value**: O valor do token, como a sequência de caracteres que representa o token.
+- **struct Token *previous**: Um ponteiro para o token anterior na lista encadeada de tokens.
+- **struct Token *next**: Um ponteiro para o próximo token na lista encadeada de tokens.
+
+## Palavras-chave
+
+Uma lista de palavras-chave válidas é definida como um array de strings. As palavras-chave são termos reservados que têm um significado especial na linguagem de programação.
 
 ```c
-typedef struct {
-    TokenType type;
-    char *value;
-    struct Token *previous;
-} Token;
-```
-**Campos:** 
-* `type`: Armazena o tipo do token como um valor do enum TokenType. Isso define se o token é um operador, símbolo, número, palavra-chave ou identificador.
-    
-* `value`: Armazena o valor textual do token, como o nome de uma variável, um operador ou um número.
-
-* `Previous`: Armazena o valor do token anterior, como o objetivo de melhorar a tratativa de erros.
-
-### Enum `TokenType`
-
-O enum `TokenType` define todos os tipos possíveis de tokens que o analisador léxico pode reconhecer.
-
-typedef enum
-{
-    // Operadores Aritméticos
-    OP_AD,  // +
-    OP_MIN, // -
-    OP_MUL, // *
-    OP_DIV, // /
-
-    // Operadores de Comparação
-    OP_EQ, // =
-    OP_NE, // <>
-    OP_GT, // >
-    OP_LT, // <
-    OP_GE, // >=
-    OP_LE, // <=
-
-    // Operador de tribuição
-    OP_ASS, // :=
-
-    // Delimitadores
-    SMB_SEM, // ;
-    SMB_COL, // :
-    SMB_COM, // ,
-    SMB_PTO, // . (ponto, para finalização)
-
-    // Parênteses e Colchetes
-    SMB_OPA, // ( (parênteses de abertura)
-    SMB_CPA, // ) (parênteses de fechamento)
-    SMB_OBC, // [ (colchete de abertura)
-    SMB_CBC, // ] (colchete de fechamento)
-
-    // Chaves
-    SMB_OBR, // { (chave de abertura)
-    SMB_CBR, // } (chave de fechamento)
-
-    // Outros tokens
-    EMPTY_STRING, // String vazia ''
-    STRING,       // String literals compostos por 'texto 232 sd'
-    IDENTIFIER,   // Identificadores
-    NUM_INT,      // Número inteiro
-    NUM_FLT,      // Número com pronto flutuante
-    KEYWORD,      // Palavras reservadas
-    UNKNOWN,      // Token desconhecida
-    ERROR,        // Token inválida
-    END_OF_FILE   // final do arquivo
-} TokenType;
-
-**Tipos de Tokens**  
-| Tipo                 | Token Definida                                                                            |
-| -------------------- | ----------------------------------------------------------------------------------------- |
-| Identificadores      | IDENTIFIER                                                                                |
-| Números              | NUM_INT,NUM_FLT                                                                           |
-| Palavra Reservada    | KEYWORD                                                                                   |
-| Operadores           | OP_EQ, OP_GE, OP_MUL, OP_NE, OP_LE, OP_DIV, OP_GT, OP_AD, OP_ASS, OP_LT, OP_MIN           |
-| Símbolos             | SMB_SEM, SMB_COL, SMB_COM, SMB_PTO, SMB_OPA, SMB_CPA, SMB_OBC, SMB_CBC, SMB_OBR, SMB_CBR, |
-| Erros                | ERROR                                                                                     |
-| Texto                | STRING,  EMPTY_STRING                                                                     |
-| Tokens desconhecidas | UNKNOWN                                                                                   |
-| Fim do Arquivo       | END_OF_FILE                                                                               |
-
-
-### Função `is_keyword`
-
-A função `is_keyword` verifica se uma string é uma palavra-chave definida na linguagem MicroPascal.
-
-```c
-int isKeyword(char *value) {
-    for (int i = 0; i < num_keywords; i++) {
-        if (strcmp(value, keywords[i]) == 0) {
-            return 1;
-        }
-    }
-    return 0;
-}
+char *keywords[] = {"and", "array", "begin", "case", "const", "div", "do", "downto", "else", "end", 
+                    "for", "function", "if", "in", "integer", "label", "mod", "not", "of", 
+                    "or", "procedure", "program", "record", "repeat", "set", "then", "to", 
+                    "type", "var", "while", "with"};
+int num_keywords = 31;
 ```
 
-**Parâmetro:**
-* `value`: String que será verificada.
-  
-**Retorno:**
-* Retorna `1` se a string for uma palavra-chave; caso contrário, retorna `0`.
-
-### Função `isValidIdentifier`
-
-A função `isValidIdentifier` verifica se uma string segue as regras de identificadores válidos da linguagem MicroPascal. 
-Ela considera um identificador como válido se ele começa com uma letra ou sublinhado (`_`) 
-e é seguido por letras, números ou sublinhados.
-
-```c
-int isValidIdentifier(char *value)
-{
-    int length = strlen(value);
-    for (int i = 1; i < length; i++)
-        if (!isalnum(value[i]) && value[i] != '_')
-            return 0;
-    return 1;
-}
-```
-
-**Parâmetro:**
-
-* `value`: A string que será verificada como identificador.
-
-**Retorno:**
-
-* Retorna `1` se for um identificador válido e `0` caso contrário.
-
-**Funcionamento:**
-
-1. Verifica se o primeiro caractere é uma letra ou sublinhado.
-2. Itera pelos caracteres seguintes, validando que todos são alfanuméricos ou sublinhados.
-3. Retorna o resultado da verificação
 
 
-### Função `getToken`
+# Lexer.h
 
-Essa função é responsável por gerar o próximo token lido do arquivo.
+Este arquivo contém a implementação do analisador léxico (lexer) para um compilador, que é responsável por ler um arquivo de entrada e dividir seu conteúdo em tokens.
 
-```c
-Token geToken(FILE *file, Token *previousToken) {
-    // Implementação detalhada no código
-}
-```
-**Parâmetro:**
-* `file`: Ponteiro para o arquivo de código-fonte (programa MicroPascal) que está sendo lido.
-  
-**Retorno:**
-* Retorna um Token contendo o tipo de token e o valor associado.
+## Estruturas e Variáveis Globais
 
-**Funcionamento:**
-1. Ignora espaços em branco.
-2. Detecta identificadores e palavras-chave.
-3. Detecta números inteiros e reais.
-4. Identifica operadores e símbolos.
-5. Retorna o token gerado ou END_OF_FILE ao final.
+### Variáveis Globais
 
-### Função `prinToken`
+- `int initial_size`: Tamanho inicial do buffer de memória para tokens.
+- `int resize_factor`: Fator de redimensionamento para aumentar o tamanho do buffer.
+- `int current_line`: Linha atual do arquivo sendo analisado.
+- `int current_column`: Coluna atual do arquivo sendo analisado.
 
-A função `prinToken` imprime um token no formato adequado, identificando o tipo e valor do token.
-```c
-void prinToken(Token token) {
-    // Implementação detalhada no código
-}
-```
+## Funções
 
-**Parâmetro:**
-* `token`: O token a ser impresso.
+### `int isKeyword(char *value)`
+
+Verifica se a string fornecida é uma palavra-chave válida da linguagem.
+
+#### Parâmetros
+- `char *value`: A string a ser verificada.
+
+#### Retorno
+- `1` se for uma palavra-chave, `0` caso contrário.
+
+---
+
+### `int isValidIdentifier(char *value)`
+
+Verifica se a string fornecida é um identificador válido.
+
+#### Parâmetros
+- `char *value`: A string a ser verificada.
+
+#### Retorno
+- `1` se for um identificador válido, `0` caso contrário.
+
+---
+
+### `void reallocMemory( Token *token, int index)`
+
+Realoca a memória para o valor do token.
+
+#### Parâmetros
+- `Token *token`: O token cuja memória será realocada.
+- `int index`: O índice atual no buffer do token.
+---
+
+### `const char *tokenTypeToString(TokenType type)`
+
+Converte o tipo de token em uma string legível.
+
+#### Parâmetros
+- `TokenType type`: O tipo do token.
+
+#### Retorno
+- Uma string representando o tipo do token.
+
+---
+
+### `Token *handleErrors(Token *token, const char *errorMessage, ...)`
+
+Manipula erros durante a análise léxica.
+
+#### Parâmetros
+- `Token *token`: O token que está sendo processado.
+- `const char *errorMessage`: A mensagem de erro a ser formatada.
+- `...`: os argumentos que serão printados junto a mensagem.
+
+#### Retorno
+- O token modificado com o tipo de erro.
+
+---
+
+### `Token *isString(FILE *file, char ch, Token *token, int index)`
+
+Verifica se o caractere atual representa o início de uma string.
+
+#### Parâmetros
+- `FILE *file`: O arquivo de entrada.
+- `char ch`: O caractere atual.
+- `Token *token`: O token a ser preenchido.
+- `int index`: O índice atual no buffer do token.
+
+#### Retorno
+- O tipo de token string.
+
+---
+
+### `Token *isAComment(FILE *file, char ch, Token *token, int index)`
+
+Verifica se o caractere atual representa o início de um comentário.
+
+#### Parâmetros
+- `FILE *file`: O arquivo de entrada.
+- `char ch`: O caractere atual.
+- `Token *token`: O token a ser preenchido.
+- `int index`: O índice atual no buffer do token.
+
+#### Retorno
+- O tipo de token comment.
+
+---
+
+### `Token *isAKeywordOrIdentifier(FILE *file, char ch, Token *token, int index, Token *previousToken)`
+
+Classifica o caractere atual como uma palavra-chave ou identificador.
+
+#### Parâmetros
+- `FILE *file`: O arquivo de entrada.
+- `char ch`: O caractere atual.
+- `Token *token`: O token a ser preenchido.
+- `int index`: O índice atual no buffer do token.
+- `Token *previousToken`: O token anterior.
+
+#### Retorno
+- IDENTIFIER ou KEYWORD.
+- caso não seja nenhuma das opções entra no tratamento de erros.
+
+---
+
+### `Token *isANumber(FILE *file, char ch, Token *token, int index)`
+
+Verifica se o caractere atual representa um número.
+
+#### Parâmetros
+- `FILE *file`: O arquivo de entrada.
+- `char ch`: O caractere atual.
+- `Token *token`: O token a ser preenchido.
+- `int index`: O índice atual no buffer do token.
+
+#### Retorno
+- O token preenchido.
+- Um erro caso o próximo caractere não seja um espaço em branco ou outro numero. 
+
+---
+
+### `Token *getToken(FILE *file, Token *previousToken)`
+
+Obtém o próximo token do arquivo.
+
+#### Parâmetros
+- `FILE *file`: O arquivo de entrada.
+- `Token *previousToken`: O token anterior.
+
+#### Retorno
+- O próximo token lido do arquivo.
+
+---
+
+### `void printToken(Token *token)`
+
+Imprime todos os tokens do arquivo em tempo de compilação.
+
+#### Parâmetros
+- `Token *token`: O token a ser impresso.
+
+---
+
+### `void printList(Token *Initialtoken)`
+
+Imprime todos os tokens com base na lista salva na memória. 
+**Obs**: para a execução se encontrar tokens de erro ou desconhecidas.
+
+#### Parâmetros
+- `Token *Initialtoken`: O token inicial da lista.
+
 
 
 ## Testes Realizados
@@ -245,7 +320,7 @@ end.
 **Programa 4: Identificador Inválido**
 ```pascal
 begin
-    2x := 10;
+    222x := 10;
 end.
 ```
 

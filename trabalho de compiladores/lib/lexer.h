@@ -33,10 +33,10 @@ int isValidIdentifier(char *value)
     return 1;
 }
 
-void reallocMemory(int initial_size, Token *token, int resize_factor)
+void reallocMemory(Token *token, int index)
 {
-    initial_size *= resize_factor;
-    token->value = (char *)realloc(token->value, initial_size * sizeof(char));
+    int newSize = initial_size + (int)(index / 3);
+    token->value = (char *)realloc(token->value, newSize * sizeof(char));
     if (!token->value)
     {
         printf("Erro: falha ao realocar memoria.\n");
@@ -80,7 +80,7 @@ Token *isString(FILE *file, char ch, Token *token, int index)
         token->value[index++] = ch;
 
         if (index >= initial_size - 1)
-            reallocMemory(initial_size, token, resize_factor);
+            reallocMemory(token, index);
 
         ch = fgetc(file);
     }
@@ -115,7 +115,7 @@ Token *isAComment(FILE *file, char ch, Token *token, int index)
                 token->value[index++] = ch;
 
                 if (index >= initial_size - 1)
-                    reallocMemory(initial_size, token, resize_factor);
+                    reallocMemory(token, index);
 
                 ch = fgetc(file);
                 if (ch == '*')
@@ -154,7 +154,7 @@ Token *isAComment(FILE *file, char ch, Token *token, int index)
             token->value[index++] = ch;
 
             if (index >= initial_size - 1)
-                reallocMemory(initial_size, token, resize_factor);
+                reallocMemory(token, index);
 
             ch = fgetc(file);
         } while (ch != '}' && ch != EOF);
@@ -183,7 +183,7 @@ Token *isAKeywordOrIdentifier(FILE *file, char ch, Token *token, int index, Toke
         token->value[index++] = ch;
 
         if (index >= initial_size - 1)
-            reallocMemory(initial_size, token, resize_factor);
+            reallocMemory(token, index);
 
         ch = fgetc(file);
     } while (isalnum(ch) || ch == '_');
@@ -510,7 +510,7 @@ void printList(Token *Initialtoken) // printando a partir do token inicial da li
     {
         if (temp->type == ERROR || temp->type == UNKNOWN)
         {
-            printf("\nerro encontrado, parando a leitura da lista");
+            printf("\nerro encontrado, parando a leitura da lista\n");
             break;
         }
         printToken(temp);
