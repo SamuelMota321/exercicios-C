@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <ctype.h>
-#include "lexer.h"
+#include "lib/lexer.h"
 #include <stdlib.h>
 
 int main()
@@ -8,12 +8,12 @@ int main()
     int option;
     FILE *file = NULL;
     Token *token = NULL;
-    Token *head = NULL;
+    Token *initialToken = NULL;
 
     do
     {
 
-        printf(" Compilador Lexico \n\n");
+        printf(" \n Compilador Lexico \n\n");
         printf(" Selecione um dos testes a seguir \n\n");
         printf(" Testes corretos \n\n");
         printf(" \t1 - Calculo simples \n");
@@ -35,7 +35,7 @@ int main()
                 ;
             continue;
         }
-        
+
         if (file != NULL)
         {
             fclose(file);
@@ -82,11 +82,18 @@ int main()
 
         if (option != 0)
         {
+            printf("\n\nimprimindo em tempo de compilacao com emicao de erros\n\n");
             do
             {
                 token = getToken(file, token);
+                if (token->previous == NULL)
+                    initialToken = token;
                 printToken(token);
             } while (token->type != END_OF_FILE);
+
+            printf("\n\nimprimindo a partir da lista de tokens salva por get token\n\n");
+            printf("\n\n token inicial: %s \n\n", tokenTypeToString(initialToken->type));
+            printList(initialToken);
         }
 
     } while (option != 0);

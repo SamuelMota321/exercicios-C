@@ -5,72 +5,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
-
-char *keywords[] = {"and", "array", "begin", "case", "const", "div", "do", "downto", "else", "end", "for",
-                    "function", "if", "in", "integer", "label", "mod", "not", "of", "or", "procedure", "program", "record", "repeat",
-                    "set", "then", "to", "type", "var", "while", "with"};
-
-int num_keywords = 31;
-
-typedef enum
-{
-    // Operadores Aritméticos
-    OP_AD,  // +
-    OP_MIN, // -
-    OP_MUL, // *
-    OP_DIV, // /
-
-    // Operadores de Comparação
-    OP_EQ, // =
-    OP_NE, // <>
-    OP_GT, // >
-    OP_LT, // <
-    OP_GE, // >=
-    OP_LE, // <=
-
-    // Operador de tribuição
-    OP_ASS, // :=
-
-    // Delimitadores
-    SMB_SEM, // ;
-    SMB_COL, // :
-    SMB_COM, // ,
-    SMB_PTO, // . (ponto, para finalização)
-
-    // Parênteses e Colchetes
-    SMB_OPA, // ( (parênteses de abertura)
-    SMB_CPA, // ) (parênteses de fechamento)
-    SMB_OBC, // [ (colchete de abertura)
-    SMB_CBC, // ] (colchete de fechamento)
-
-    // Chaves
-    SMB_OBR, // { (chave de abertura)
-    SMB_CBR, // } (chave de fechamento)
-
-    // Outros tokens
-    EMPTY_STRING,  // String vazia ''
-    STRING,        // String literals compostos por 'texto 232 sd'
-    COMMENT,       // identificação de comentário
-    EMPTY_COMMENT, // comentário vazio
-    IDENTIFIER,    // Identificadores
-    NUM_INT,       // Número inteiro
-    NUM_FLT,       // Número com pronto flutuante
-    KEYWORD,       // Palavras reservadas
-    UNKNOWN,       // Token desconhecida
-    ERROR,         // Token inválida
-    END_OF_FILE    // final do arquivo
-} TokenType;
-
-typedef struct Token
-{
-    TokenType type;
-    char *value;
-    struct Token *previous;
-    struct Token *next;
-} Token;
+#include "tokens.h"
 
 int initial_size = 100;
 int resize_factor = 2;
+int current_line = 1;
+int current_column = 1;
 
 int isKeyword(char *value)
 {
@@ -104,20 +44,35 @@ void reallocMemory(int initial_size, Token *token, int resize_factor)
     }
 }
 
-Token *handleErrors(const char *errorMessage, ...)
+const char *tokenTypeToString(TokenType type)
+{
+    switch (type)
+    {
+#define X(token) \
+    case token:  \
+        return #token;
+        TOKEN_TYPES
+#undef X
+    default:
+        printf("Unexpected error");
+        break;
+    }
+}
+
+Token *handleErrors(Token *token, const char *errorMessage, ...)
 {
     va_list args;
-    va_start(args, errorMessage);         // Inicializa a lista de argumentos
-    vprintf(errorMessage, args);          // Imprime a mensagem de erro formatada com os argumentos variáveis
-    va_end(args);                         // Finaliza o uso da lista de argumentos
-    Token *token = va_arg(args, Token *); // Recupera o token a partir dos argumentos (supondo que o último argumento seja o token)
-    token->type = ERROR;                  // Define o tipo do token como erro
+    va_start(args, errorMessage); // Inicializa a lista de argumentos
+    fprintf(stderr, "Erro encontrado na linha %d, coluna %d: ", current_line, current_column);
+    vprintf(errorMessage, args); // Imprime a mensagem de erro formatada com os argumentos variáveis
+    va_end(args);                // Finaliza o uso da lista de argumentos
+    token->type = ERROR;         // Define o tipo do token como erro
     return token;
 }
 
 Token *isString(FILE *file, char ch, Token *token, int index)
 {
-    token->value[index++] = '\''; // adicionando abertura da string.
+    token->value[index++] = '\''; // adicionando abertura da string
 
     ch = fgetc(file);
     while (ch != '\'' && ch != EOF)
@@ -129,21 +84,20 @@ Token *isString(FILE *file, char ch, Token *token, int index)
 
         ch = fgetc(file);
     }
-    token->value[index++] = '\''; // adicionando fechamento da string.
+    token->value[index++] = '\''; // adicionando fechamento da string
     token->value[index] = '\0';
 
     if (index > 0 && strcmp(token->value, "''") != 0)
     {
         token->type = STRING;
-        return token;
     }
 
     if (index == 0)
     {
         strcpy(token->value, "''");
         token->type = EMPTY_STRING;
-        return token;
     }
+    return token;
 }
 
 Token *isAComment(FILE *file, char ch, Token *token, int index)
@@ -240,14 +194,18 @@ Token *isAKeywordOrIdentifier(FILE *file, char ch, Token *token, int index, Toke
     if (isKeyword(token->value))
     {
         if (previousToken != NULL && previousToken->type == ERROR && isdigit(*previousToken->value))
-            token = handleErrors("A palavra reservada %s%s e invalida, pois comeca com um numero.\n", token->previous->value, token->value);
+        {
+            token = handleErrors(token, "A palavra reservada %s%s e invalida, pois comeca com um numero.\n", token->previous->value, token->value);
+        }
         else
             token->type = KEYWORD;
     }
     else if (isValidIdentifier(token->value))
     {
         if (previousToken != NULL && previousToken->type == ERROR && isdigit(*previousToken->value))
-            token = handleErrors("A palavra reservada %s%s e invalida, pois comeca com um numero.\n", token->previous->value, token->value);
+        {
+            token = handleErrors(token, "A palavra reservada %s%s e invalida, pois comeca com um numero.\n", token->previous->value, token->value);
+        }
         else
             token->type = IDENTIFIER;
     }
@@ -295,14 +253,19 @@ Token *isANumber(FILE *file, char ch, Token *token, int index)
 
 Token *getToken(FILE *file, Token *previousToken)
 {
-
     Token *token = (Token *)malloc(sizeof(Token));
     token->value = (char *)malloc(initial_size * sizeof(char));
-    token->previous = previousToken;
+    token->previous = previousToken; // O token atual aponta para o anterior
+    token->next = NULL;              // O próximo token ainda não existe, então é NULL
+    if (previousToken != NULL)
+    {
+        previousToken->next = token; // O token anterior aponta para o token atual
+    }
+
     char ch;
     int index = 0;
 
-    do
+    while (1)
     {
         ch = fgetc(file);
         if (ch == EOF)
@@ -311,9 +274,27 @@ Token *getToken(FILE *file, Token *previousToken)
             strcpy(token->value, "EOF");
             return token;
         }
-    } while (isspace(ch));
 
-    // verifica se é uma string
+        // Atualiza a linha e a coluna
+        if (ch == '\n')
+        {
+            current_line++;
+            current_column = 0; // Reinicia a coluna na nova linha
+        }
+        else if (!isspace(ch))
+        {
+            // Se não for espaço em branco, conta a coluna
+            current_column++;
+            break; // Sai do loop para processar o próximo caractere
+        }
+        else
+        {
+            // Se for espaço em branco, apenas incrementa a coluna
+            current_column++;
+        }
+    }
+
+    // Verifica se é uma string
     if (ch == '\'')
     {
         token = isString(file, ch, token, index);
@@ -327,14 +308,14 @@ Token *getToken(FILE *file, Token *previousToken)
         return token;
     }
 
-    // verica se é uma palavra reservada ou um identificador
+    // Verifica se é uma palavra reservada ou um identificador
     if (isalpha(ch) || ch == '_')
     {
         token = isAKeywordOrIdentifier(file, ch, token, index, previousToken);
         return token;
     }
 
-    // verifica o número, caso tenha um caractere letra após retorna um erro que é tratado no código acima
+    // Verifica se é um número
     if (isdigit(ch))
     {
         token = isANumber(file, ch, token, index);
@@ -505,136 +486,35 @@ Token *getToken(FILE *file, Token *previousToken)
     return token;
 }
 
-void printToken(Token *token)
+void printToken(Token *token) // printando a partir do loop de definição
 {
     switch (token->type)
     {
-    case IDENTIFIER:
-        printf("IDENTIFIER: %s\n", token->value);
-        break;
-
-    case NUM_INT:
-        printf("NUM_INT: %s\n", token->value);
-        break;
-
-    case NUM_FLT:
-        printf("NUM_FLT: %s\n", token->value);
-        break;
-
-    case KEYWORD:
-        printf("KEYWORD: %s\n", token->value);
-        break;
-
-    case OP_EQ:
-        printf("OP_EQ: %s\n", token->value);
-        break;
-
-    case OP_GE:
-        printf("OP_GE: %s\n", token->value);
-        break;
-
-    case OP_MUL:
-        printf("OP_MUL: %s\n", token->value);
-        break;
-
-    case OP_NE:
-        printf("OP_NE: %s\n", token->value);
-        break;
-
-    case OP_LE:
-        printf("OP_LE: %s\n", token->value);
-        break;
-
-    case OP_DIV:
-        printf("OP_DIV: %s\n", token->value);
-        break;
-
-    case OP_GT:
-        printf("OP_GT: %s\n", token->value);
-        break;
-
-    case OP_AD:
-        printf("OP_AD: %s\n", token->value);
-        break;
-
-    case OP_ASS:
-        printf("OP_ASS: %s\n", token->value);
-        break;
-
-    case OP_LT:
-        printf("OP_LT: %s\n", token->value);
-        break;
-
-    case OP_MIN:
-        printf("OP_MIN: %s\n", token->value);
-        break;
-
-    case SMB_OBC:
-        printf("SMB_OBC: %s\n", token->value);
-        break;
-
-    case SMB_COM:
-        printf("SMB_COM: %s\n", token->value);
-        break;
-
-    case SMB_CBC:
-        printf("SMB_CBC: %s\n", token->value);
-        break;
-
-    case SMB_SEM:
-        printf("SMB_SEM: %s\n", token->value);
-        break;
-
-    case SMB_OPA:
-        printf("SMB_OPA: %s\n", token->value);
-        break;
-
-    case SMB_CPA:
-        printf("SMB_CPA: %s\n", token->value);
-        break;
-
-    case SMB_OBR:
-        printf("SMB_OBR: %s\n", token->value);
-        break;
-
-    case SMB_CBR:
-        printf("SMB_CBR: %s\n", token->value);
-        break;
-
-    case SMB_PTO:
-        printf("SMB_PTO: %s\n", token->value);
-        break;
-    case SMB_COL:
-        printf("SMB_COL: %s\n", token->value);
-        break;
-
-    case STRING:
-        printf("STRING: %s\n", token->value);
-        break;
-
-    case EMPTY_STRING:
-        printf("EMPTY_STRING: %s\n", token->value);
-        break;
-
-    case COMMENT:
-        printf("COMMENT: %s\n", token->value);
-        break;
-
-    case EMPTY_COMMENT:
-        printf("EMPTY_COMMENT: %s\n", token->value);
+    case ERROR:
         break;
 
     case UNKNOWN:
-        printf("UNKNOWN: %s caractere desconhecido!\n", token->value);
+        printf("%s: %s  token desconhecido pela linguagem! encontrado na linha %d coluna %d\n", tokenTypeToString(token->type), token->value, current_line, current_column);
         break;
 
-    case END_OF_FILE:
-        printf("EOF\n");
+    default:
+        printf("%s: %s\n", tokenTypeToString(token->type), token->value);
         break;
+    }
+}
 
-    default: // descomente aqui caso queria que imprima todos os erros
-             //    printf("\n\n\t ERROR %s\n\n", token->value);
-        break;
+void printList(Token *Initialtoken) // printando a partir do token inicial da lista
+{
+    Token *temp = Initialtoken;
+    while (temp != NULL)
+    {
+        if (temp->type == ERROR || temp->type == UNKNOWN)
+        {
+            printf("\nerro encontrado, parando a leitura da lista");
+            break;
+        }
+        printToken(temp);
+        temp = temp->next;
     }
 }
 
