@@ -435,15 +435,15 @@ Token *getToken(FILE *file, Token *previousToken)
         ungetc(ch, file);
         break;
 
-    case '{':
-        strcpy(token->value, "{");
-        token->type = SMB_OBR;
-        break;
+    // case '{':
+    //     strcpy(token->value, "{");
+    //     token->type = SMB_OBR;
+    //     break;
 
-    case '}':
-        strcpy(token->value, "}");
-        token->type = SMB_CBR;
-        break;
+    // case '}': //esta sendo tratado nos comentarios
+    //     strcpy(token->value, "}");
+    //     token->type = SMB_CBR;
+    //     break;
 
     case ',':
         strcpy(token->value, ",");

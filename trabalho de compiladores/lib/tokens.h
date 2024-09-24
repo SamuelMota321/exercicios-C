@@ -32,8 +32,8 @@ int num_keywords = 31;
     X(SMB_OBC) /* [ (colchete de abertura) */                           \
     X(SMB_CBC) /* ] (colchete de fechamento) */                         \
     /* Chaves */                                                        \
-    X(SMB_OBR) /* { (chave de abertura) */                              \
-    X(SMB_CBR) /* } (chave de fechamento) */                            \
+    /* X(SMB_OBR)   { (chave de abertura) */                            \
+    /*X(SMB_CBR)   } (chave de fechamento) */                           \
     /* Outros tokens */                                                 \
     X(EMPTY_STRING)  /* String vazia '' */                              \
     X(STRING)        /* String literals compostos por 'texto 232 sd' */ \
