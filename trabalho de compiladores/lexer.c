@@ -5,13 +5,13 @@
 
 int main()
 {
+
     int option;
     FILE *file = NULL;
-    Token *token = NULL;
-    Token *initialToken = NULL;
-
     do
     {
+        Token *token = NULL;
+        Token *initialToken = NULL;
 
         printf(" \n Compilador Lexico \n\n");
         printf(" Selecione um dos testes a seguir \n\n");
@@ -93,6 +93,10 @@ int main()
 
             printf("\n\nimprimindo a partir da lista de tokens salva por get token\n\n");
             printList(initialToken);
+
+            // recomeçando a contagem apos todas as impressões para não acumular
+            current_line = 1;
+            current_column = 1;
         }
 
     } while (option != 0);
