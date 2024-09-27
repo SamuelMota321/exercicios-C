@@ -10,5 +10,5 @@ int main(void)
     };
 
     struct Horario horario;
-    horario.
+    horario;
 }
