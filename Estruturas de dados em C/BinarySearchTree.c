@@ -26,10 +26,11 @@ int main(void)
     insert3(&root, 70);
     insert2(&root, 20);
     insert3(&root, 40);
+    insert2(&root, 55);
     insert2(&root, 60);
     insert3(&root, 80);
     insert3(&root, 90);
-
+    root = delete(root, 60);
     printf("Raiz: %d Arvore em ordem:  ", root->data);
     printInOrder(root);
     printf("\n");
@@ -40,6 +41,7 @@ int main(void)
     else
         printf("Valor nao encontrado");
     printf("\nAltura: %d ", height(root));
+    
 
     return 0;
 }
@@ -177,6 +179,28 @@ Node *delete(Node *root, int data)
             }
             else
             {
+                if (root->left != NULL && root->right != NULL)
+                {
+                    Node *temp = root->left;
+                    while (temp->right != NULL)
+                        temp = temp->right;
+                        root->data = temp->data;
+                        temp->data = data;
+                        root->left = delete(root->left, data);
+
+                }
+                else
+                {
+                    Node *temp;
+                    if (root->left != NULL)
+                    {
+                        temp = root->left;
+                    }
+                    else
+                        temp = root->right;
+                    free(root);
+                    return temp; 
+                }
             }
         }
         else
@@ -184,7 +208,7 @@ Node *delete(Node *root, int data)
             if (data < root->data)
                 root->left = delete (root->left, data);
             else
-                root->right =delete(root->right ,data);
+                root->right = delete (root->right, data);
         }
     }
 }
