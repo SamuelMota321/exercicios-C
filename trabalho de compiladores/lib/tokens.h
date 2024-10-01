@@ -55,11 +55,20 @@ typedef enum
 #undef X
 } TokenType;
 
+
 typedef struct Token
 {
     TokenType type;
     char *value;
     struct Token *previous;
     struct Token *next;
+    int line;
+    int colunm;
 } Token;
+typedef struct Table
+{
+    int id;
+    Token *identifier;
+    struct Table *nextIdentifier;
+} Table;
 #endif

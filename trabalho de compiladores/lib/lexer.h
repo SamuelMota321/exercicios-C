@@ -5,7 +5,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <sys/stat.h>
 #include "tokens.h"
+#include <direct.h>
 
 int initial_size = 100;
 int resize_factor = 2;
@@ -104,10 +106,10 @@ Token *isAComment(FILE *file, char ch, Token *token, int index)
 {
     if (ch == '(')
     {
-        token->value[index] = ch;
+        token->value[index++] = ch;
         token->type = SMB_OPA;
         ch = fgetc(file);
-        if (ch == '*')
+        if (strchr("*", ch))
         {
             token->value[index++] = '('; // adcionando abertura do comentário
             while (1 || ch != EOF)
@@ -144,9 +146,10 @@ Token *isAComment(FILE *file, char ch, Token *token, int index)
             }
         }
         ungetc(ch, file);
+        token->value[index] = '\0';
         return token;
     }
-    else if (ch == '{')
+    else
     {
         // Início do comentário de bloco { ... }
         do
@@ -298,6 +301,8 @@ Token *getToken(FILE *file, Token *previousToken)
     if (ch == '\'')
     {
         token = isString(file, ch, token, index);
+        token->line = current_line;
+        token->colunm = current_column;
         return token;
     }
 
@@ -305,6 +310,8 @@ Token *getToken(FILE *file, Token *previousToken)
     if (ch == '{' || ch == '(')
     {
         token = isAComment(file, ch, token, index);
+        token->line = current_line;
+        token->colunm = current_column;
         return token;
     }
 
@@ -312,6 +319,8 @@ Token *getToken(FILE *file, Token *previousToken)
     if (isalpha(ch) || ch == '_')
     {
         token = isAKeywordOrIdentifier(file, ch, token, index, previousToken);
+        token->line = current_line;
+        token->colunm = current_column;
         return token;
     }
 
@@ -319,6 +328,8 @@ Token *getToken(FILE *file, Token *previousToken)
     if (isdigit(ch))
     {
         token = isANumber(file, ch, token, index);
+        token->line = current_line;
+        token->colunm = current_column;
         return token;
     }
 
@@ -435,15 +446,15 @@ Token *getToken(FILE *file, Token *previousToken)
         ungetc(ch, file);
         break;
 
-    // case '{':
-    //     strcpy(token->value, "{");
-    //     token->type = SMB_OBR;
-    //     break;
+        // case '{':
+        //     strcpy(token->value, "{");
+        //     token->type = SMB_OBR;
+        //     break;
 
-    // case '}': //esta sendo tratado nos comentarios
-    //     strcpy(token->value, "}");
-    //     token->type = SMB_CBR;
-    //     break;
+        // case '}': //esta sendo tratado nos comentarios
+        //     strcpy(token->value, "}");
+        //     token->type = SMB_CBR;
+        //     break;
 
     case ',':
         strcpy(token->value, ",");
@@ -461,6 +472,10 @@ Token *getToken(FILE *file, Token *previousToken)
         break;
 
         // o tratamento da leitura da abertura do parênteses está sendo feita no if que checa comentários
+    // case '(':
+    //     strcpy(token->value, "(");
+    //     token->type = SMB_OPA;
+    //     break;
     case ')':
         strcpy(token->value, ")");
         token->type = SMB_CPA;
@@ -483,38 +498,112 @@ Token *getToken(FILE *file, Token *previousToken)
         break;
     }
 
+    token->line = current_line;
+    token->colunm = current_column;
     return token;
 }
 
-void printToken(Token *token) // printando a partir do loop de definição
+void ensureOutputDirectoryExists()
 {
-    switch (token->type)
+    struct stat st = {0};
+
+    // Se o diretório ./output/ não existir, crie-o
+    if (stat("./output", &st) == -1)
     {
-    case ERROR:
-        break;
-
-    case UNKNOWN:
-        printf("%s: %s  token desconhecido pela linguagem! encontrado na linha %d coluna %d\n", tokenTypeToString(token->type), token->value, current_line, current_column);
-        break;
-
-    default:
-        printf("%s: %s\n", tokenTypeToString(token->type), token->value);
-        break;
+        mkdir("./output");
     }
 }
 
-void printList(Token *Initialtoken) // printando a partir do token inicial da lista
+Table *createNodeTable(Token *token)
+{
+    static int index = 1;
+    Table *newNode = (Table *)malloc(sizeof(Table));
+    newNode->id = index++;
+    newNode->identifier = token;
+    newNode->nextIdentifier = NULL;
+}
+
+void printTable(Token *token, Table **table)
+{
+    Token *currentToken = token;
+
+    while (currentToken != NULL)
+    {
+        if (currentToken->type == IDENTIFIER)
+        {
+            Table *current = *table;
+            int found = 0;
+
+            // Procura na tabela para ver se o identificador já existe
+            while (current != NULL)
+            {
+                if (current->identifier->type == currentToken->type &&
+                    strcmp(current->identifier->value, currentToken->value) == 0)
+                {
+                    printf("| Linha %d | Coluna: %d | index: %d | token: %s | Value:  %s | \n", currentToken->line, currentToken->colunm, current->id, tokenTypeToString(currentToken->type), currentToken->value);
+                    found = 1;
+                    break;
+                }
+                current = current->nextIdentifier;
+            }
+
+            // Se não foi encontrado, adiciona um novo nó na tabela
+            if (!found)
+            {
+                Table *newNode = createNodeTable(currentToken);
+                if (*table == NULL)
+                {
+                    *table = newNode;
+                }
+                else
+                {
+                    current = *table;
+                    while (current->nextIdentifier != NULL)
+                    {
+                        current = current->nextIdentifier;
+                    }
+                    current->nextIdentifier = newNode;
+                }
+                printf("| Linha %d | Coluna: %d | index: %d | token: %s | Value:  %s | \n", currentToken->line, currentToken->colunm, newNode->id, tokenTypeToString(currentToken->type), currentToken->value);
+            }
+        }
+        currentToken = currentToken->next;
+    }
+}
+
+// printando a partir do token inicial da lista
+void printFile(Token *Initialtoken, FILE *file)
 {
     Token *temp = Initialtoken;
-    while (temp != NULL)
+    if (!file)
     {
-        if (temp->type == ERROR || temp->type == UNKNOWN)
+        printf("Erro ao abrir o arquivo de saida!\n\n");
+    }
+    else
+    {
+        printf("Imprimindo arquivo de saida");
+        while (temp != NULL)
         {
-            printf("\nerro encontrado, parando a leitura da lista\n");
-            break;
+            if (temp->type == ERROR || temp->type == UNKNOWN)
+            {
+                printf("\nerro encontrado, parando a leitura da lista\n");
+                break;
+            }
+            switch (temp->type)
+            {
+            case ERROR:
+                break;
+
+            case UNKNOWN:
+                fprintf(file, "%s: %s  token desconhecido pela linguagem! encontrado na linha %d coluna %d\n", tokenTypeToString(temp->type), temp->value, current_line, current_column);
+                break;
+
+            default:
+                fprintf(file, "Linha %d coluna %d <%s, %s> \n", temp->line, temp->colunm, temp->value, tokenTypeToString(temp->type));
+                break;
+            }
+            temp = temp->next;
         }
-        printToken(temp);
-        temp = temp->next;
     }
 }
 

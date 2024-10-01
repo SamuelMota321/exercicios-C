@@ -5,13 +5,18 @@
 
 int main()
 {
-
+    ensureOutputDirectoryExists();
     int option;
     FILE *file = NULL;
+    FILE *fileExit = NULL; // Declaração do arquivo de saída
+
     do
     {
+        int index = 0;
         Token *token = NULL;
         Token *initialToken = NULL;
+        Table *table = NULL;
+        Table *initialIdentifier = NULL;
 
         printf(" \n Compilador Lexico \n\n");
         printf(" Selecione um dos testes a seguir \n\n");
@@ -42,6 +47,12 @@ int main()
             file = NULL;
         }
 
+        if (fileExit != NULL)
+        {
+            fclose(fileExit); // Fechando o arquivo de saída anterior
+            fileExit = NULL;
+        }
+
         switch (option)
         {
         case 0:
@@ -49,24 +60,31 @@ int main()
             break;
         case 1:
             file = fopen("./codePas/calculoSimples.pas", "r");
+            fileExit = fopen("./output/calculoSimples.lex", "w");
             break;
         case 2:
             file = fopen("./codePas/estruturaCondicional.pas", "r");
+            fileExit = fopen("./output/estruturaCondicional.lex", "w");
             break;
         case 3:
             file = fopen("./codePas/lacoFor.pas", "r");
+            fileExit = fopen("./output/lacoFor.lex", "w");
             break;
         case 4:
             file = fopen("./codePas/identificadorInvalido.pas", "r");
+            fileExit = fopen("./output/identificadorInvalido.lex", "w");
             break;
         case 5:
             file = fopen("./codePas/caractereDesconhecido.pas", "r");
+            fileExit = fopen("./output/caractereDesconhecido.lex", "w");
             break;
         case 6:
             file = fopen("./codePas/operadorDesconhecido.pas", "r");
+            fileExit = fopen("./output/operadorDesconhecido.lex", "w");
             break;
         case 7:
             file = fopen("./codePas/testeCompletoMicroPascal.pas", "r");
+            fileExit = fopen("./output/testeCompletoMicroPascal.lex", "w");
             break;
         default:
             printf("Opcao invalida\n");
@@ -82,19 +100,16 @@ int main()
 
         if (option != 0)
         {
-            printf("\n\nimprimindo em tempo de compilacao com emicao de erros\n\n");
             do
             {
                 token = getToken(file, token);
                 if (token->previous == NULL)
                     initialToken = token;
-                printToken(token);
             } while (token->type != END_OF_FILE);
 
-            printf("\n\nimprimindo a partir da lista de tokens salva por get token\n\n");
-            printList(initialToken);
-
-            // recomeçando a contagem apos todas as impressões para não acumular
+            printFile(initialToken, fileExit); // Agora a lista de tokens é impressa no arquivo de saída
+            printTable(initialToken, &table);
+            // Resetando a contagem de linhas e colunas após a compilação
             current_line = 1;
             current_column = 1;
         }
@@ -104,6 +119,11 @@ int main()
     if (file != NULL)
     {
         fclose(file);
+    }
+
+    if (fileExit != NULL)
+    {
+        fclose(fileExit); // Certifique-se de fechar o arquivo de saída no final
     }
 
     return 0;
