@@ -65,7 +65,7 @@ Token *handleErrors(Token *token, const char *errorMessage, ...)
 {
     va_list args;
     va_start(args, errorMessage); // Inicializa a lista de argumentos
-    fprintf(stderr, "Erro encontrado na linha %d, coluna %d: ", current_line, current_column);
+    fprintf(stderr, "\nErro encontrado na linha %d, coluna %d: ", current_line, current_column);
     vprintf(errorMessage, args); // Imprime a mensagem de erro formatada com os argumentos variáveis
     va_end(args);                // Finaliza o uso da lista de argumentos
     token->type = ERROR;         // Define o tipo do token como erro
@@ -592,6 +592,7 @@ void printFile(Token *Initialtoken, FILE *file)
 
             case UNKNOWN:
                 fprintf(file, "%s : %s  token desconhecido pela linguagem! encontrado na linha %d coluna %d\n", tokenTypeToString(temp->type), temp->value, current_line, current_column);
+                printf("\n%s : %s  token desconhecido pela linguagem! encontrado na linha %d coluna %d\n\n", tokenTypeToString(temp->type), temp->value, current_line, current_column);
                 break;
 
             default:
