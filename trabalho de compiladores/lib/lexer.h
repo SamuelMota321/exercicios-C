@@ -581,7 +581,7 @@ void printFile(Token *Initialtoken, FILE *file)
     }
     else
     {
-        printf("Imprimindo arquivo de saida");
+        printf("Imprimindo arquivo de saida\n\n");
         while (temp != NULL)
         {
             if (temp->type == ERROR || temp->type == UNKNOWN)
