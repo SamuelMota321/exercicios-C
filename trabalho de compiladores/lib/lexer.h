@@ -191,8 +191,8 @@ Token *isAKeywordOrIdentifier(FILE *file, char ch, Token *token, int index, Toke
         ch = fgetc(file);
     } while (isalnum(ch) || ch == '_');
 
-    token->value[index] = '\0';
     ungetc(ch, file);
+    token->value[index] = '\0';
 
     if (isKeyword(token->value))
     {
@@ -581,21 +581,17 @@ void printFile(Token *Initialtoken, FILE *file)
     }
     else
     {
-        printf("Imprimindo arquivo de saida\n\n");
+        printf("\nImprimindo arquivo de saida\n");
         while (temp != NULL)
         {
-            if (temp->type == ERROR || temp->type == UNKNOWN)
-            {
-                printf("\nerro encontrado, parando a leitura da lista\n");
-                break;
-            }
             switch (temp->type)
             {
             case ERROR:
+                fprintf(file, "%s : %s  erro identificado! encontrado na linha %d coluna %d\n", tokenTypeToString(temp->type), temp->value, current_line, current_column);
                 break;
 
             case UNKNOWN:
-                fprintf(file, "%s: %s  token desconhecido pela linguagem! encontrado na linha %d coluna %d\n", tokenTypeToString(temp->type), temp->value, current_line, current_column);
+                fprintf(file, "%s : %s  token desconhecido pela linguagem! encontrado na linha %d coluna %d\n", tokenTypeToString(temp->type), temp->value, current_line, current_column);
                 break;
 
             default:
