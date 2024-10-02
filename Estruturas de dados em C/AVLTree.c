@@ -10,8 +10,7 @@ typedef struct Node
     struct Node *right;
     short height;
 } Node;
-
-void insert(Node **root, int data);
+Node *insert(Node *root, int data);
 Node *search(Node *root, int data);
 Node *delete(Node *root, int data);
 Node *createNode(int data);
@@ -26,15 +25,15 @@ int main(void)
 {
     Node *root = NULL;
     Node *search = NULL;
-    insert(&root, 50);
-    insert(&root, 30);
-    insert(&root, 70);
-    insert(&root, 20);
-    insert(&root, 40);
-    insert(&root, 55);
-    insert(&root, 60);
-    insert(&root, 80);
-    insert(&root, 90);
+    insert(root, 50);
+    insert(root, 30);
+    insert(root, 70);
+    insert(root, 20);
+    insert(root, 40);
+    insert(root, 55);
+    insert(root, 60);
+    insert(root, 80);
+    insert(root, 90);
     root = delete (root, 60);
     printf("Raiz: %d Arvore em ordem:  ", root->data);
     printInOrder(root);
@@ -64,19 +63,23 @@ Node *createNode(int data)
         printf("\n Erro ao alocar memoria para um novo no");
 }
 
-void insert(Node **root, int data)
+Node *insert(Node *root, int data)
 {
-    Node *newNode = *root;
-    while (newNode)
+    if (root == NULL)
+        return createNode(data);
+    else
     {
-        if (data < newNode->data)
-            root = &newNode->left;
+        if (data < root->data)
+            root->left = insert(root->left, data);
+        else if (data > root->data)
+            root->right = insert(root->right, data);
         else
-            root = &newNode->right;
-        newNode = *root;
+            printf("\nInsecao nao realizada!\n o elemento %d ja existe\n", data);
     }
-    newNode = createNode(data);
-    *root = newNode;
+
+    root->height = big(height(root->left), height(root->right) + 1);
+    root = balancing(root);
+    return root;
 }
 
 Node *search(Node *root, int data)
@@ -103,19 +106,33 @@ void printInOrder(Node *root)
         printInOrder(root->right);
     }
 }
-Node *leftRotation(Node *root)
+
+Node *balancing(Node *root)
 {
-    Node *newRoot, *f;
-    newRoot = root->right;
-    f = newRoot->left;
+    short fb = balancingFactor(root);
 
-    newRoot->left = root;
-    root->right = f;
+    if (fb < -1 && balancingFactor(root->right) <= 0)
+        root = leftRotation(root);
+    else if (fb > 1 && balancingFactor(root->left) >= 0)
+        root = rightRotation(root);
+    else if (fb > 1 && balancingFactor(root->left) < 0)
+        root = leftRightRotation(root);
+    else if (fb < -1 && balancingFactor(root->right) > 0)
+        root = rightLeftRotation;
 
-    root->height = big(height(root->left), height(root->right)) + 1;
-    newRoot->height = big(height(newRoot->left), height(newRoot->right)) + 1;
-  
-    return newRoot;    
+    return root;
+}
+
+Node *rightLeftRotation(Node *root)
+{
+    root->right = rightRotation(root->right);
+    return leftRotation(root);
+}
+
+Node *leftRightRotation(Node *root)
+{
+    root->left = leftRotation(root->left);
+    return rightRotation(root);
 }
 
 Node *rightRotation(Node *root)
@@ -129,8 +146,8 @@ Node *rightRotation(Node *root)
 
     root->height = big(height(root->left), height(root->right)) + 1;
     newRoot->height = big(height(newRoot->left), height(newRoot->right)) + 1;
-  
-    return newRoot;    
+
+    return newRoot;
 }
 Node *leftRotation(Node *root)
 {
@@ -143,10 +160,9 @@ Node *leftRotation(Node *root)
 
     root->height = big(height(root->left), height(root->right)) + 1;
     newRoot->height = big(height(newRoot->left), height(newRoot->right)) + 1;
-  
-    return newRoot;    
-}
 
+    return newRoot;
+}
 
 short balancingFactor(Node *node)
 {
@@ -218,5 +234,9 @@ Node *delete(Node *root, int data)
             else
                 root->right = delete (root->right, data);
         }
+        
+        root->height = big(height(root->left), height(root->right) + 1);
+        root = balancing(root);
+        return root;
     }
 }
