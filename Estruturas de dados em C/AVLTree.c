@@ -1,8 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
 
-#include <stdio.h>
-
-// Definição da estrutura da árvore binária de busca
+// Definição da estrutura da árvore AVL
 typedef struct Node
 {
     int data;
@@ -10,41 +9,49 @@ typedef struct Node
     struct Node *right;
     short height;
 } Node;
+
 Node *insert(Node *root, int data);
 Node *search(Node *root, int data);
 Node *delete(Node *root, int data);
 Node *createNode(int data);
 Node *leftRotation(Node *root);
-void printInOrder(Node *root);
+void printInOrder(Node *root, int level);
 Node *rightRotation(Node *root);
 short height(Node *node);
-short big(short left, short right);
+short max(short left, short right);
+Node *balancing(Node *root);
+Node *leftRightRotation(Node *root);
+Node *rightLeftRotation(Node *root);
 short balancingFactor(Node *node);
 
 int main(void)
 {
     Node *root = NULL;
-    Node *search = NULL;
-    insert(root, 50);
-    insert(root, 30);
-    insert(root, 70);
-    insert(root, 20);
-    insert(root, 40);
-    insert(root, 55);
-    insert(root, 60);
-    insert(root, 80);
-    insert(root, 90);
+    Node *searchResult = NULL;
+
+    root = insert(root, 50);
+    root = insert(root, 30);
+    root = insert(root, 70);
+    root = insert(root, 20);
+    root = insert(root, 40);
+    root = insert(root, 55);
+    root = insert(root, 60);
+    root = insert(root, 80);
+    root = insert(root, 90);
+
     root = delete (root, 60);
+
     printf("Raiz: %d Arvore em ordem:  ", root->data);
-    printInOrder(root);
+    printInOrder(root, 0);
     printf("\n");
-    // search = search1(root, 120);
-    search = search2(root, 80);
-    if (search)
-        printf("Valor encontrado na busca: %d", search->data);
+
+    searchResult = search(root, 80);
+    if (searchResult)
+        printf("Valor encontrado na busca: %d\n", searchResult->data);
     else
-        printf("Valor nao encontrado");
-    printf("\nAltura: %d ", height(root));
+        printf("Valor não encontrado\n");
+
+    printf("Altura da árvore: %d\n", height(root));
 
     return 0;
 }
@@ -60,65 +67,104 @@ Node *createNode(int data)
         newNode->height = 0;
     }
     else
-        printf("\n Erro ao alocar memoria para um novo no");
+    {
+        printf("\nErro ao alocar memória para um novo nó\n");
+    }
+    return newNode;
 }
 
 Node *insert(Node *root, int data)
 {
     if (root == NULL)
-        return createNode(data);
-    else
     {
-        if (data < root->data)
-            root->left = insert(root->left, data);
-        else if (data > root->data)
-            root->right = insert(root->right, data);
-        else
-            printf("\nInsecao nao realizada!\n o elemento %d ja existe\n", data);
+        return createNode(data);
     }
 
-    root->height = big(height(root->left), height(root->right) + 1);
-    root = balancing(root);
-    return root;
+    if (data < root->data)
+    {
+        root->left = insert(root->left, data);
+    }
+    else if (data > root->data)
+    {
+        root->right = insert(root->right, data);
+    }
+    else
+    {
+        printf("\nInserção não realizada! O elemento %d já existe.\n", data);
+        return root;
+    }
+
+    // Atualizar a altura
+    root->height = 1 + max(height(root->left), height(root->right));
+
+    // Balancear a árvore
+    return balancing(root);
 }
 
 Node *search(Node *root, int data)
 {
-    while (root)
+    while (root != NULL)
     {
         if (data < root->data)
+        {
             root = root->left;
+        }
         else if (data > root->data)
+        {
             root = root->right;
+        }
         else
+        {
             return root;
+        }
     }
     return NULL;
 }
 
-// Função para imprimir a árvore em ordem (in-order)
-void printInOrder(Node *root)
+void printInOrder(Node *root, int level)
 {
-    if (root != NULL)
+    if (root)
     {
-        printInOrder(root->left);
-        printf("%d ", root->data);
-        printInOrder(root->right);
+        printInOrder(root->right, level + 1);
+        printf("\n");
+
+        for (int i = 0; i < level; i++)
+        {
+            printf("\t");
+        }
+
+        printf("%d", root->data);
+        printInOrder(root->left, level + 1);
     }
 }
 
 Node *balancing(Node *root)
 {
-    short fb = balancingFactor(root);
+    short bf = balancingFactor(root);
 
-    if (fb < -1 && balancingFactor(root->right) <= 0)
-        root = leftRotation(root);
-    else if (fb > 1 && balancingFactor(root->left) >= 0)
-        root = rightRotation(root);
-    else if (fb > 1 && balancingFactor(root->left) < 0)
-        root = leftRightRotation(root);
-    else if (fb < -1 && balancingFactor(root->right) > 0)
-        root = rightLeftRotation;
+    // Rotação esquerda
+    if (bf < -1 && balancingFactor(root->right) <= 0)
+    {
+        return leftRotation(root);
+    }
+
+    // Rotação direita
+    if (bf > 1 && balancingFactor(root->left) >= 0)
+    {
+        return rightRotation(root);
+    }
+
+    // Rotação dupla direita-esquerda
+    if (bf > 1 && balancingFactor(root->left) < 0)
+    {
+        return leftRightRotation(root);
+    }
+
+    // Rotação dupla esquerda-direita
+    if (bf < -1 && balancingFactor(root->right) > 0)
+    {
+        return rightLeftRotation(root);
+    }
 
     return root;
 }
@@ -137,42 +183,44 @@ Node *leftRightRotation(Node *root)
 
 Node *rightRotation(Node *root)
 {
-    Node *newRoot, *f;
-    newRoot = root->left;
-    f = newRoot->right;
+    Node *newRoot = root->left;
+    Node *temp = newRoot->right;
 
     newRoot->right = root;
-    root->left = f;
+    root->left = temp;
 
-    root->height = big(height(root->left), height(root->right)) + 1;
-    newRoot->height = big(height(newRoot->left), height(newRoot->right)) + 1;
+    // Atualizar alturas
+    root->height = 1 + max(height(root->left), height(root->right));
+    newRoot->height = 1 + max(height(newRoot->left), height(newRoot->right));
 
     return newRoot;
 }
+
 Node *leftRotation(Node *root)
 {
-    Node *newRoot, *f;
-    newRoot = root->right;
-    f = newRoot->left;
+    Node *newRoot = root->right;
+    Node *temp = newRoot->left;
 
     newRoot->left = root;
-    root->right = f;
+    root->right = temp;
 
-    root->height = big(height(root->left), height(root->right)) + 1;
-    newRoot->height = big(height(newRoot->left), height(newRoot->right)) + 1;
+    // Atualizar alturas
+    root->height = 1 + max(height(root->left), height(root->right));
+    newRoot->height = 1 + max(height(newRoot->left), height(newRoot->right));
 
     return newRoot;
 }
 
 short balancingFactor(Node *node)
 {
-    if (node)
-        return (height(node->left) - height(node->right));
-    else
+    if (node == NULL)
+    {
         return 0;
+    }
+    return height(node->left) - height(node->right);
 }
 
-short big(short left, short right)
+short max(short left, short right)
 {
     return (left > right) ? left : right;
 }
@@ -180,9 +228,10 @@ short big(short left, short right)
 short height(Node *node)
 {
     if (node == NULL)
+    {
         return -1;
-    else
-        return node->height;
+    }
+    return node->height;
 }
 
 Node *delete(Node *root, int data)
@@ -192,51 +241,40 @@ Node *delete(Node *root, int data)
         printf("Valor não encontrado\n");
         return NULL;
     }
+
+    if (data < root->data)
+    {
+        root->left = delete (root->left, data);
+    }
+    else if (data > root->data)
+    {
+        root->right = delete (root->right, data);
+    }
     else
     {
-        if (root->data == data)
+        // Nó encontrado
+        if (root->left == NULL || root->right == NULL)
         {
-            if (root->left == NULL && root->right == NULL)
-            {
-                free(root);
-                printf("elemento %d folha foi removido\n", data);
-                return NULL;
-            }
-            else
-            {
-                if (root->left != NULL && root->right != NULL)
-                {
-                    Node *temp = root->left;
-                    while (temp->right != NULL)
-                        temp = temp->right;
-                    root->data = temp->data;
-                    temp->data = data;
-                    root->left = delete (root->left, data);
-                }
-                else
-                {
-                    Node *temp;
-                    if (root->left != NULL)
-                    {
-                        temp = root->left;
-                    }
-                    else
-                        temp = root->right;
-                    free(root);
-                    return temp;
-                }
-            }
+            Node *temp = (root->left) ? root->left : root->right;
+            free(root);
+            return temp;
         }
         else
         {
-            if (data < root->data)
-                root->left = delete (root->left, data);
-            else
-                root->right = delete (root->right, data);
+            Node *temp = root->left;
+            while (temp->right != NULL)
+            {
+                temp = temp->right;
+            }
+            root->data = temp->data;
+            root->left = delete (root->left, temp->data);
         }
-        
-        root->height = big(height(root->left), height(root->right) + 1);
-        root = balancing(root);
-        return root;
     }
+
+    // Atualizar a altura
+    root->height = 1 + max(height(root->left), height(root->right));
+
+    // Balancear a árvore
+    root = balancing(root);
+    return root;
 }
