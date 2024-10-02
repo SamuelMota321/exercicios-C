@@ -60,14 +60,43 @@ A enumeração `TokenType` define os diferentes tipos de tokens que o analisador
   - `ERROR`: Token inválido
   - `END_OF_FILE`: Final do arquivo
 
-### Estrutura `Token`
+### Estruturas 
+
+#### `Token`
 
 A estrutura `Token` representa um token individual, contendo as seguintes informações:
+
+```c
+typedef struct Token
+{
+    TokenType type;
+    char *value;
+    struct Token *previous;
+    struct Token *next;
+    int line;
+    int colunm;
+} Token;
+```
 
 - **TokenType `type`**: O tipo do token.
 - **char *value**: O valor do token, como a sequência de caracteres que representa o token.
 - **struct Token *previous**: Um ponteiro para o token anterior na lista encadeada de tokens.
 - **struct Token *next**: Um ponteiro para o próximo token na lista encadeada de tokens.
+
+#### `Table`
+
+```c
+typedef struct Table
+{
+    int id;
+    Token *identifier;
+    struct Table *nextIdentifier;
+} Table;
+```
+
+**int id**: id gerado para a token
+**Token *identifier**: ponteiro para a token IDENTIFIER (identificadores)
+**struct Table *nextIdentifier**: ponteiro para o próximo identificador da tabela
 
 ## Palavras-chave
 
@@ -80,8 +109,6 @@ char *keywords[] = {"and", "array", "begin", "case", "const", "div", "do", "down
                     "type", "var", "while", "with"};
 int num_keywords = 31;
 ```
-
-
 
 # Lexer.h
 
@@ -220,6 +247,7 @@ Verifica se o caractere atual representa um número.
 
 ---
 
+
 ### `Token *getToken(FILE *file, Token *previousToken)`
 
 Obtém o próximo token do arquivo.
@@ -233,22 +261,27 @@ Obtém o próximo token do arquivo.
 
 ---
 
-### `void printToken(Token *token)`
+### `void ensureOutputDirectoryExists()`
 
-Imprime todos os tokens do arquivo em tempo de compilação.
+Se o diretório ./output/ não existir, crie-o
+
+### `void printTable(Token *token, Table **table)`
+
+indentifica,registre e imprime todos os tokens indentificadores .
 
 #### Parâmetros
-- `Token *token`: O token a ser impresso.
+- `Token *token`: O token a ser analizado.
+- `Table **table`: Tabela onde o token será inserido.
 
 ---
 
-### `void printList(Token *Initialtoken)`
+### `void printFile(Token *Initialtoken, FILE *file)`
 
-Imprime todos os tokens com base na lista salva na memória. 
-**Obs**: para a execução se encontrar tokens de erro ou desconhecidas.
+Imprime todos os tokens em um novo arquivo com base na lista salva na memória. 
 
 #### Parâmetros
 - `Token *Initialtoken`: O token inicial da lista.
+- `FILE *file`: Arquivo onde será colocada as tokens.
 
 
 
