@@ -6,7 +6,7 @@
 
 // Principais pontos:
 
-// Complexidade: O(n²), onde n é o número de elementos.
+// Complexidade: em todos os casos: O(n²), onde n é o número de elementos.
 // Não é estável: pode alterar a ordem relativa de elementos iguais.
 // Simples de entender e implementar, mas ineficiente para grandes listas.
 

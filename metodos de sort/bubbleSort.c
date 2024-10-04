@@ -5,7 +5,7 @@
 // vem do fato de que os maiores elementos "flutuam" para o topo (final) da lista a cada iteração.
 
 // Principais pontos:
-// Complexidade: O(n²), onde n é o número de elementos.
+// Complexidade: melhor caso: O(n) media e pior caso: O(n²), onde n é o número de elementos.
 // Estável: mantém a ordem relativa de elementos iguais.
 // Simples de implementar, mas ineficiente para listas grandes.
 
