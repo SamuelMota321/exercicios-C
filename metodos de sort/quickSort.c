@@ -10,8 +10,6 @@
 // Não é estável: pode alterar a ordem relativa de elementos iguais.
 // Muito eficiente para grandes listas e é amplamente usado na prática.
 
-#include <stdio.h>
-
 void quicksort(int array[], int low, int high);
 int partition(int array[], int low, int high);
 
@@ -54,5 +52,3 @@ int partition(int array[], int low, int high) {
     array[high] = temp;
     return i + 1;
 }
-
-//C
