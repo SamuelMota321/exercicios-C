@@ -1,5 +1,15 @@
 #include <stdio.h>
 
+// O MergeSort é um algoritmo de ordenação que também segue o paradigma de "dividir e conquistar".
+//  Ele divide recursivamente a lista ao meio até que cada sublista tenha um único elemento, e 
+//  então combina (merge) essas sublistas ordenadas para formar uma lista ordenada maior.
+
+// Principais pontos:
+
+// Complexidade: O(n log n) em todos os casos (melhor, médio e pior).
+// Estável: mantém a ordem relativa de elementos iguais.
+// Consome mais memória devido ao uso de listas auxiliares durante o processo de "merge"
+
 void mergeSort(double arr[], int start, int end);
 void merge(double arr[], int start, int mid, int end);
 
