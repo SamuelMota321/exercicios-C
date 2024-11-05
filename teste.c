@@ -2,13 +2,21 @@
 
 int main()
 {
-    int i, j;
-    for (i = 0; i < 2; i++)
+    int i, a[3];
+    printf("digite 3 numeros: \n");
+
+    for (i = 0; i < 3; i++)
     {
-        for (j = 1; j < 3; j++)
+        scanf("%d", &a[i]);
+    }
+    int menor = a[0];
+
+    for (i = 0; i < 3; i++)
+    {
+        if (menor > a[i])
         {
-            printf("\nTeste");
+            menor = a[i];
         }
     }
-    return 0;
+    printf("o menor valor digitado e: %d\n", menor);
 }

@@ -5,7 +5,6 @@ int main()
     int count = 1;
     int fat = 1;
     int num;
-
     printf("digite um numero para calcular o seu fatorial: ");
     scanf(" %i", &num);
 
