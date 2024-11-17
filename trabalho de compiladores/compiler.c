@@ -109,7 +109,11 @@ int main()
             } while (token->type != END_OF_FILE);
 
             printFile(initialToken, fileExit); // Agora a lista de tokens é impressa no arquivo de saída
-            syntactic(initialToken); //passa a lista de tokens para o analizador sitático
+            
+            // Chamada para iniciar o analisador sintático 
+            Token *currentToken = initialToken; // Inicializa o token atual com o primeiro token da lista
+            parseProgram(&currentToken); // Chama o analisador sintático com o token inicial
+
             printTable(initialToken, &table);
             // Resetando a contagem de linhas e colunas após a compilação
             current_line = 1;
