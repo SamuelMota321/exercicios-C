@@ -2,25 +2,33 @@ program TesteCompiladorLexico;
 
 var
     a, b, resultado: integer;
+var
     x, y: real;
+var
     condicao: boolean;
 
 function SomaInteiros(i, j: integer): integer;
+
 begin
     SomaInteiros := i + j;
-end;
+end
 
 procedure MostraResultado(r: integer);
+
 begin
     writeln('O resultado inteiro e: ', r);
-end;
+end
 
 procedure MostraResultadoReal(r: real);
+
 begin
     writeln('O resultado real e: ', r:0:2);
-end;
+end
+
  { Eu sou um comentario }
  (*eu também *)
+
+
 begin
     a := 10;
     b := 20;
@@ -43,6 +51,7 @@ begin
         writeln('A e menor ou igual a B');
 
     while a < 15 do
+
     begin
         a := a + 1;
         writeln('Valor de A: ', a);
@@ -61,5 +70,4 @@ begin
         writeln('A e par')
     else
         writeln('A e impar');
-        
 end.

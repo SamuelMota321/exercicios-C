@@ -20,10 +20,12 @@ void parseSimpleExpression(Token **current);
 void parseTerm(Token **current);
 void parseFactor(Token **current);
 void parseVariable(Token **current);
+void endOfComand(Token **current);
+void parseFunctionOrProcedure(Token **current);
 
 void syntaxError(const char *message, Token *current)
 {
-    printf("Erro de sintaxe: %s. Token atual: %s\n", message, current->value);
+    printf("Erro de sintaxe: %s. Token atual: %s. Linha: %d, Coluna: %d, Token anterior: %s \n", message, current->value, current->line, current->colunm, current->previous->value);
     exit(1);
 }
 
@@ -62,6 +64,11 @@ void parseBlock(Token **current)
 {
     // <bloco> ::= <parte de declarações de variáveis> <comando composto>
     parseVariableDeclarations(current);
+    while ((*current)->type == KEYWORD &&
+           (strcmp((*current)->value, "function") == 0 || strcmp((*current)->value, "procedure") == 0))
+    {
+        parseFunctionOrProcedure(current);
+    }
     parseCommandCompound(current);
 }
 
@@ -90,10 +97,7 @@ void parseVariableDeclaration(Token **current)
     expect(current, SMB_COL); // Espera ':'
 
     // Espera um tipo: integer, real ou boolean
-    if ((*current)->type == KEYWORD &&
-        (strcmp((*current)->value, "integer") == 0 ||
-         strcmp((*current)->value, "real") == 0 ||
-         strcmp((*current)->value, "boolean") == 0))
+    if ((*current)->type == KEYWORD && ((strcmp((*current)->value, "integer") == 0) || (strcmp((*current)->value, "real")) == 0 || (strcmp((*current)->value, "boolean") == 0)))
     {
         *current = (*current)->next;
     }
@@ -103,28 +107,105 @@ void parseVariableDeclaration(Token **current)
     }
 }
 
+void parseFunctionOrProcedure(Token **current)
+{
+    // Verifica se é uma declaração de função ou procedimento
+    if ((*current)->type == KEYWORD &&
+        ((strcmp((*current)->value, "function") == 0) || (strcmp((*current)->value, "procedure") == 0)))
+    {
+        // Identifica se é uma função
+        int isFunction = strcmp((*current)->value, "function") == 0;
+
+        *current = (*current)->next; // Avança após "function" ou "procedure"
+
+        // Espera o nome da função ou procedimento
+        expect(current, IDENTIFIER);
+
+        // Verifica a lista de parâmetros entre parênteses
+        expect(current, SMB_OPA); // Espera "("
+
+        while ((*current)->type != SMB_CPA)
+        {
+            // Um ou mais identificadores (parâmetros) seguidos do tipo
+            expect(current, IDENTIFIER); // Primeiro parâmetro
+
+            // Verifica se há mais parâmetros do mesmo tipo
+            while ((*current)->type == SMB_COM) // Detecta vírgula
+            {
+                *current = (*current)->next; // Avança após ","
+                expect(current, IDENTIFIER); // Próximo identificador
+            }
+
+            // Espera ":" seguido do tipo
+            expect(current, SMB_COL); // ":"
+            if ((*current)->type == KEYWORD &&
+                (strcmp((*current)->value, "integer") == 0 ||
+                 strcmp((*current)->value, "real") == 0 ||
+                 strcmp((*current)->value, "boolean") == 0))
+            {
+                *current = (*current)->next; // Avança após o tipo
+            }
+            else
+            {
+                syntaxError("Esperado um tipo válido para os parâmetros", *current);
+            }
+
+            // Verifica se ainda há mais grupos de parâmetros
+            if ((*current)->type == SMB_SEM) // Detecta ";"
+            {
+                *current = (*current)->next; // Avança após ";"
+            }
+        }
+        expect(current, SMB_CPA); // Fecha ")"
+
+        // Se for uma função, espera ": <tipo de retorno>"
+        if (isFunction)
+        {
+            expect(current, SMB_COL); // ":" após o ")"
+            if ((*current)->type == KEYWORD &&
+                (strcmp((*current)->value, "integer") == 0 ||
+                 strcmp((*current)->value, "real") == 0 ||
+                 strcmp((*current)->value, "boolean") == 0))
+            {
+                *current = (*current)->next; // Avança após o tipo de retorno
+            }
+            else
+            {
+                syntaxError("Esperado um tipo válido para o retorno da função", *current);
+            }
+        }
+
+        // Espera ";" após o cabeçalho
+        expect(current, SMB_SEM);
+
+        // Analisa o corpo da função ou procedimento
+        parseBlock(current);
+
+        // Finaliza com ";"
+        expect(current, SMB_SEM);
+    }
+    else
+    {
+        syntaxError("Esperado 'function' ou 'procedure'", *current);
+    }
+}
+
 void parseCommandCompound(Token **current)
 {
     // <comando composto> ::= begin <comando> { ; <comando> } end
     if ((*current)->type == KEYWORD && strcmp((*current)->value, "begin") == 0)
     {
         *current = (*current)->next; // Avança após "begin"
-        parseCommand(current); // Processa o primeiro comando
+        parseCommand(current);       // Processa o primeiro comando
 
         while ((*current)->type == SMB_SEM) // Consome comandos separados por ";"
         {
             *current = (*current)->next; // Avança após ";"
+
             parseCommand(current); // Processa o próximo comando
         }
 
-        if ((*current)->type == KEYWORD && strcmp((*current)->value, "end") == 0)
-        {
-            *current = (*current)->next; // Avança após "end"
-        }
-        else
-        {
-            syntaxError("Esperado 'end' para fechar o bloco de comandos", *current);
-        }
+        endOfComand(current);
     }
     else
     {
@@ -132,26 +213,32 @@ void parseCommandCompound(Token **current)
     }
 }
 
+void endOfComand(Token **current)
+{
+    if ((*current)->type == SMB_PTO)
+        *current = (*current)->previous;
+    if ((*current)->type == KEYWORD && strcmp((*current)->value, "end") == 0)
+    {
+        *current = (*current)->next; // Avança após "end"
+    }
+    else
+    {
+        syntaxError("Esperado 'end' para finalizar o bloco de comandos", *current);
+    }
+}
 
 void parseWriteln(Token **current)
 {
     *current = (*current)->next; // Avança após "writeln"
-    printf("%s", (*current)->value);
-
     // Verifica e consome o token de abertura de parêntese "("
     expect(current, SMB_OPA); // Função que gera erro se o próximo token não for "("
 
     // Processa os argumentos dentro do parêntese
     while ((*current)->type != SMB_CPA)
     { // Enquanto não encontra ")"
-        if ((*current)->type == STRING)
+        if ((*current)->type == STRING || (*current)->type == IDENTIFIER || (*current)->type == NUM_INT || (*current)->type == NUM_FLT)
         {
             // Se for uma string literal, avançamos
-            *current = (*current)->next;
-        }
-        else if ((*current)->type == IDENTIFIER)
-        {
-            // Se for um identificador (como uma variável), avançamos
             *current = (*current)->next;
         }
         else
@@ -177,10 +264,25 @@ void parseWriteln(Token **current)
     expect(current, SMB_SEM);
 }
 
+void parseFor(Token **current)
+{
+    *current = (*current)->next; // Avança após "for"
+    parseCommand(current);
+    if ((*current)->type == KEYWORD && strcmp((*current)->value, "to") == 0)
+    {
+        *current = (*current)->next;
+        expect(current, NUM_INT);
+        if ((*current)->type == KEYWORD && strcmp((*current)->value, "do") == 0)
+        {
+            *current = (*current)->next;
+            parseCommand(current);
+        }
+    }
+}
+
 void parseCommand(Token **current)
 {
-
-    // <comado> ::= <atribuição> | <comando composto> | <comando condicional> | <comando repetitivo>
+    // <comando> ::= <atribuição> | <comando composto> | <comando condicional> | <comando repetitivo>
     if ((*current)->type == IDENTIFIER)
     {
         parseAssignment(current); // Atribuição
@@ -199,7 +301,20 @@ void parseCommand(Token **current)
     }
     else if ((*current)->type == KEYWORD && strcmp((*current)->value, "end") == 0)
     {
-        printf("end of file");
+        endOfComand(current);
+    }
+    else if ((*current)->type == KEYWORD && strcmp((*current)->value, "else") == 0)
+    {
+        *current = (*current)->next; // Avança após "else"
+        parseCommand(current);       // Processa o comando após "else"
+    }
+    else if ((*current)->type == KEYWORD && strcmp((*current)->value, "for") == 0)
+    {
+        parseFor(current); // Comando repetitivo "for"
+    }
+    else if ((*current)->type == KEYWORD && (strcmp((*current)->value, "function") == 0) || (strcmp((*current)->value, "procedure") == 0))
+    {
+        parseFunctionOrProcedure(current);
     }
     else
     {
@@ -213,34 +328,32 @@ void parseAssignment(Token **current)
     {
         parseWriteln(current);
     }
-    // <atribuição> ::= <variável> := <expressão>
-    parseVariable(current);
-    expect(current, OP_ASS); // Espera ':='
-    parseExpression(current);
+    else
+    {
+        // <atribuição> ::= <variável> := <expressão>
+        parseVariable(current);
+        expect(current, OP_ASS); // Espera ':='
+        parseExpression(current);
+    }
 }
 
 void parseConditional(Token **current)
 {
     // <comando condicional> ::= if <expressão> then <comando> [ else <comando> ]
     *current = (*current)->next; // Avança após "if"
-    parseExpression(current); // Processa a expressão condicional
+    parseExpression(current);    // Processa a expressão condicional
+
+    // Verifica o "then"
     if ((*current)->type == KEYWORD && strcmp((*current)->value, "then") == 0)
     {
         *current = (*current)->next; // Avança após "then"
-        parseCommand(current); // Processa o comando após "then"
-
-        if ((*current)->type == KEYWORD && strcmp((*current)->value, "else") == 0)
-        {
-            *current = (*current)->next; // Avança após "else"
-            parseCommand(current); // Processa o comando após "else"
-        }
+        parseCommand(current);       // Processa o comando associado ao "then"
     }
     else
     {
         syntaxError("Esperado 'then' após a expressão condicional", *current);
     }
 }
-
 
 void parseRepetitive(Token **current)
 {

@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include "lib/lexer.h"
 #include "lib/syntactic.h"
+#include "lib/semantic.h"
 #include <stdlib.h>
 
 int main()
@@ -9,7 +10,7 @@ int main()
     ensureOutputDirectoryExists();
     int option;
     FILE *file = NULL;
-    FILE *fileExit = NULL; // Declaração do arquivo de saída
+    FILE *fileExit = NULL; // Declaraçao do arquivo de saída
 
     do
     {
@@ -109,13 +110,18 @@ int main()
             } while (token->type != END_OF_FILE);
 
             printFile(initialToken, fileExit); // Agora a lista de tokens é impressa no arquivo de saída
-            
-            // Chamada para iniciar o analisador sintático 
+
+            // Chamada para iniciar o analisador sintatico
             Token *currentToken = initialToken; // Inicializa o token atual com o primeiro token da lista
-            parseProgram(&currentToken); // Chama o analisador sintático com o token inicial
+            parseProgram(&currentToken);        // Chama o analisador sintatico com o token inicial
+
+
+            printf("Iniciando analise semantica...\n");
+            analyzeSemantic(initialToken, table);
 
             printTable(initialToken, &table);
-            // Resetando a contagem de linhas e colunas após a compilação
+            // Resetando a contagem de linhas e colunas apos a compilaçao
+
             current_line = 1;
             current_column = 1;
         }

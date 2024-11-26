@@ -3,8 +3,8 @@
 
 char *keywords[] = {"and", "array", "begin", "case", "const", "div", "do", "downto", "else", "end", "for",
                     "function", "if", "in", "integer", "label", "mod", "not", "of", "or", "procedure", "program", "record", "repeat",
-                    "set", "then", "to", "type", "var", "while", "with"};
-int num_keywords = 31;
+                    "set", "then", "to", "type", "var", "while", "with", "real", "boolean"};
+int num_keywords = 33;
 
 // Definindo uma macro com os tipos de tokens e suas representações
 
@@ -71,6 +71,7 @@ typedef struct Table
 {
     int id;
     Token *identifier;
+    int value;
     struct Table *nextIdentifier;
 } Table;
 #endif
