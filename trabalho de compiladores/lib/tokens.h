@@ -71,7 +71,7 @@ typedef struct Table
 {
     int id;
     Token *identifier;
-    int value;
+    double value;
     struct Table *nextIdentifier;
 } Table;
 #endif

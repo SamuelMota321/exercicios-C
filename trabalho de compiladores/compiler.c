@@ -20,7 +20,7 @@ int main()
         Table *table = NULL;
         Table *initialIdentifier = NULL;
 
-        printf(" \n Compilador Lexico \n\n");
+        printf(" \n Compilador \n\n");
         printf(" Selecione um dos testes a seguir \n\n");
         printf(" Testes corretos \n\n");
         printf(" \t1 - Calculo simples \n");
@@ -29,9 +29,9 @@ int main()
         printf(" Testes que retornam erros \n\n");
         printf(" \t4 - Identificador Invalido \n");
         printf(" \t5 - Caractere desconhecido \n");
-        printf(" \t6 - Operador desconhecido \n\n");
-        printf(" Teste mais robusto \n\n");
-        printf(" \t7 - Teste completo micro pascal \n");
+        printf(" \t6 - Operador desconhecido \n");
+        printf(" \t7 - Erro Sintatico \n");
+        printf(" \t8 - Variavel nao iniciada \n");
         printf(" \t0 - Sair \n");
         scanf("%d", &option);
 
@@ -85,8 +85,12 @@ int main()
             fileExit = fopen("./output/operadorDesconhecido.lex", "w");
             break;
         case 7:
-            file = fopen("./codePas/testeCompletoMicroPascal.pas", "r");
-            fileExit = fopen("./output/testeCompletoMicroPascal.lex", "w");
+            file = fopen("./codePas/erroBegin.pas", "r");
+            fileExit = fopen("./output/erroBegin.lex", "w");
+            break;
+        case 8:
+            file = fopen("./codePas/variavelNaoIniciada.pas", "r");
+            fileExit = fopen("./output/variavelNaoIniciada.lex", "w");
             break;
         default:
             printf("Opcao invalida\n");
@@ -112,16 +116,12 @@ int main()
             printFile(initialToken, fileExit); // Agora a lista de tokens é impressa no arquivo de saída
 
             // Chamada para iniciar o analisador sintatico
-            Token *currentToken = initialToken; // Inicializa o token atual com o primeiro token da lista
-            parseProgram(&currentToken);        // Chama o analisador sintatico com o token inicial
+            Token *currentToken = initialToken;
+            parseProgram(&currentToken);
 
-
-            printf("Iniciando analise semantica...\n");
             analyzeSemantic(initialToken, table);
 
             printTable(initialToken, &table);
-            // Resetando a contagem de linhas e colunas apos a compilaçao
-
             current_line = 1;
             current_column = 1;
         }

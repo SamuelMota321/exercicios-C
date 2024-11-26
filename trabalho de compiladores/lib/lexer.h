@@ -540,7 +540,7 @@ void printTable(Token *token, Table **table)
                 if (current->identifier->type == currentToken->type &&
                     strcmp(current->identifier->value, currentToken->value) == 0)
                 {
-                    printf("| Linha %d | Coluna: %d | index: %d | token: %s | identifier:  %s | value %d \n", currentToken->line, currentToken->colunm, current->id, tokenTypeToString(currentToken->type), currentToken->value, (*table)->value);
+                    printf("| Linha %d | Coluna: %d | index: %d | token: %s | identifier:  %s | value %lf \n", currentToken->line, currentToken->colunm, current->id, tokenTypeToString(currentToken->type), currentToken->value, (*table)->value);
                     found = 1;
                     break;
                 }
@@ -564,7 +564,7 @@ void printTable(Token *token, Table **table)
                     }
                     current->nextIdentifier = newNode;
                 }
-                printf("| Linha %d | Coluna: %d | index: %d | token: %s | identifier:  %s | value %d \n", currentToken->line, currentToken->colunm, newNode->id, tokenTypeToString(currentToken->type), currentToken->value, (*table)->value);
+                printf("| Linha %d | Coluna: %d | index: %d | token: %s | identifier:  %s | value %lf \n", currentToken->line, currentToken->colunm, newNode->id, tokenTypeToString(currentToken->type), currentToken->value, (*table)->value);
             }
         }
         currentToken = currentToken->next;

@@ -4,7 +4,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h> // Adicionada para reconhecer INT_MIN e INT_MAX
 #include "tokens.h"
+
+// Função para imprimir erros semânticos com detalhes
+void printSemanticError(const char *message, Token *token) {
+    if (token != NULL) {
+        printf("Erro semântico: %s na linha %d, coluna %d.\n", 
+               message, token->line, token->colunm);
+    } else {
+        printf("Erro semântico: %s\n", message);
+    }
+}
 
 // Função para obter o tipo associado a um token
 char *getTypeFromToken(Table *symbolTable, Token *token)
@@ -21,14 +32,17 @@ char *getTypeFromToken(Table *symbolTable, Token *token)
             if (strcmp(current->identifier->value, token->value) == 0)
             {
                 // Retorna o tipo associado como string
-                if (current->identifier->type == NUM_INT) return "integer";
-                if (current->identifier->type == NUM_FLT) return "real";
-                if (current->identifier->type == STRING) return "string";
+                if (current->identifier->type == NUM_INT)
+                    return "integer";
+                if (current->identifier->type == NUM_FLT)
+                    return "real";
+                if (current->identifier->type == STRING)
+                    return "string";
                 return "unknown"; // Tipo desconhecido, por segurança
             }
             current = current->nextIdentifier;
         }
-        printf("Erro semântico: Identificador '%s' não declarado.\n", token->value);
+        printSemanticError("Identificador não declarado", token);
         return NULL;
     }
 
@@ -70,7 +84,15 @@ void updateVariableValue(Table *symbolTable, Token *identifier, int value)
     {
         if (strcmp(current->identifier->value, identifier->value) == 0)
         {
-            current->value = value; // Atualiza o valor da variável
+            // Atualiza o valor da variável (caso seja um tipo numérico)
+            if (current->identifier->type == NUM_INT)
+            {
+                current->value = value; // Atualiza o valor inteiro
+            }
+            else
+            {
+                printSemanticError("Tipo incompatível para atribuição de valor à variável", identifier);
+            }
             return;
         }
         current = current->nextIdentifier;
@@ -89,7 +111,7 @@ int isCompatibleType(Table *symbolTable, Token *left, Token *right)
 
     if (leftType == NULL || rightType == NULL)
     {
-        printf("Erro semântico: Tipo indefinido para a expressão.\n");
+        printSemanticError("Tipo indefinido para a expressão", left);
         return 0;
     }
 
@@ -104,9 +126,24 @@ int isCompatibleType(Table *symbolTable, Token *left, Token *right)
         return 1; // Permitimos conversão entre integer e real
     }
 
-    printf("Erro semântico: Tipos incompatíveis ('%s' e '%s') na linha %d, coluna %d.\n",
-           leftType, rightType, left->line, left->colunm);
+    printSemanticError("Tipos incompatíveis", left);
     return 0;
+}
+
+// Função para converter uma string para um inteiro de maneira segura
+int safeAtoi(const char *str)
+{
+    char *endptr;
+    long result = strtol(str, &endptr, 10);
+    if (*endptr != '\0') {
+        printf("Erro: '%s' não é um número válido.\n", str);
+        return 0;  // Retorna 0 para indicar erro
+    }
+    if (result < INT_MIN || result > INT_MAX) {
+        printf("Erro: '%s' está fora do intervalo de inteiros.\n", str);
+        return 0;  // Retorna 0 para indicar erro
+    }
+    return (int)result;
 }
 
 // Função principal para análise semântica
@@ -124,21 +161,21 @@ void analyzeSemantic(Token *tokenList, Table *symbolTable)
         case IDENTIFIER:
             if (!isDeclared(symbolTable, currentToken->value))
             {
-                printf("Erro semântico: Identificador '%s' na linha %d, coluna %d não declarado.\n",
-                       currentToken->value, currentToken->line, currentToken->colunm);
+                printSemanticError("Identificador não declarado", currentToken);
             }
             break;
         case OP_ASS:
             if (!isCompatibleType(symbolTable, currentToken->previous, currentToken->next))
             {
-                printf("Erro semântico: Incompatibilidade de tipos na linha %d, coluna %d.\n",
-                       currentToken->line, currentToken->colunm);
+                printSemanticError("Incompatibilidade de tipos", currentToken);
             }
             else
             {
                 // Converte o valor da expressão para inteiro antes de atualizar
-                int value = atoi(currentToken->next->value); // Converte string para inteiro
-                updateVariableValue(symbolTable, currentToken->previous, value);
+                int value = safeAtoi(currentToken->next->value);
+                if (value != 0) { // Se a conversão foi bem-sucedida
+                    updateVariableValue(symbolTable, currentToken->previous, value);
+                }
             }
             break;
         default:
